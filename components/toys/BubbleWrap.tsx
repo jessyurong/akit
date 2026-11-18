@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx } from "../../lib/audio/sfx";
 
@@ -11,7 +12,7 @@ const quotes = [
   "Achievement unlocked: you clicked a button. Glorious.",
   "Your stress was politely asked to vacate the premises.",
   "You are now 3.14% more legendary.",
-  "Somewhere in the digital cosmos, a duck salutes you. 🦆",
+  "Somewhere in the digital cosmos, a duck salutes you.",
   "Status update: tension dropping to safely silly levels.",
   "Certified vibe check: passed with flying sparkles.",
   "You pressed something! The dopamine has arrived.",
@@ -39,7 +40,7 @@ export default function BubbleWrap() {
     if (next.every(Boolean)) {
       sfx.success();
       addScore(10);
-      say("🏆 BUBBLE MASTER! All 12 bubbles cleared — bonus +10!");
+      say("BUBBLE MASTER! All 12 bubbles cleared — bonus +10!");
     } else {
       say(quotes[Math.floor(Math.random() * quotes.length)]);
     }
@@ -53,7 +54,8 @@ export default function BubbleWrap() {
 
   return (
     <Tile
-      title="🫧 Bubble Wrap"
+      title="Bubble Wrap"
+      icon="bubble"
       desc="Tap each bubble. Tiny pops, instant relief."
       action={
         <button className="smallBtn" onClick={reset}>
@@ -65,7 +67,11 @@ export default function BubbleWrap() {
           <span>
             {popped} / {COUNT} popped
           </span>
-          {popped === COUNT && <span className="bonusTag">🎉 All clear! +10</span>}
+          {popped === COUNT && (
+            <span className="bonusTag">
+              <Icon name="star" size={12} /> All clear! +10
+            </span>
+          )}
         </>
       }
     >
@@ -78,7 +84,7 @@ export default function BubbleWrap() {
             aria-label={done ? `Bubble ${i + 1} popped` : `Pop bubble ${i + 1}`}
             aria-pressed={done}
           >
-            {done ? "" : "🫧"}
+            {done ? "" : null}
           </button>
         ))}
       </div>

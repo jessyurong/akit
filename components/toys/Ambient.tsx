@@ -5,6 +5,7 @@ import { Tile } from "../ui";
 import { useGame } from "../../lib/game";
 import { ambient, AMBIENT_DEFS, type AmbientId } from "../../lib/audio/ambient";
 import { sfx } from "../../lib/audio/sfx";
+import { Icon } from "../icons";
 
 export default function Ambient() {
   const { say, addScore, settings, updateSettings, resetToken, pushToast } = useGame();
@@ -27,9 +28,9 @@ export default function Ambient() {
     if (on) {
       sfx.click();
       const def = AMBIENT_DEFS.find((d) => d.id === id);
-      say(`${def?.emoji ?? "🎵"} ${def?.label ?? "Ambient"} layer added. Stack more for a full soundscape.`);
+      say(`${def?.label ?? "Ambient"} layer added. Stack more for a full soundscape.`);
       if (ambient.activeIds().length === 2) {
-        pushToast("Ambient layers stack — try rain + fireplace 🔥", "🎧");
+        pushToast("Ambient layers stack — try rain + fireplace.", "mixer");
       }
     } else {
       say("Layer removed. Silence is also a valid soundscape.");
@@ -38,7 +39,8 @@ export default function Ambient() {
 
   return (
     <Tile
-      title="🎵 Ambient Mixer"
+      title="Ambient Mixer"
+      icon="mixer"
       desc="Stack real-time soundscapes. Blend as many as you like."
       action={<span className="scoreBadge">{active.length} on</span>}
       className="ambientCard"
@@ -67,7 +69,9 @@ export default function Ambient() {
               aria-pressed={on}
               title={def.hint}
             >
-              <span>{def.emoji}</span>
+              <span>
+                <Icon name={def.icon} size={16} />
+              </span>
               {def.label}
               <span className="ambientDot" data-on={on} />
             </button>

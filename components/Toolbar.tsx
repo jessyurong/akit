@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useGame } from "../lib/game";
 import { sfx, haptics } from "../lib/audio/sfx";
-import { THEME_EMOJI, THEME_LABELS, type ThemeName } from "../lib/theme";
+import { THEME_ICON, THEME_LABELS, type ThemeName } from "../lib/theme";
+import { Icon } from "./icons";
 import { Modal } from "./ui";
 import {
   installChangeEvent,
@@ -29,7 +30,7 @@ function InstallButton() {
     setStandalone(isStandalone());
     const onInstalled = () => {
       setStandalone(true);
-      pushToast("Installed! Look for the playground on your home screen.", "📲");
+      pushToast("Installed! Look for the playground on your home screen.", "install");
     };
     window.addEventListener(installChangeEvent(), sync);
     window.addEventListener("appinstalled", onInstalled);
@@ -49,7 +50,7 @@ function InstallButton() {
         onClick={async () => {
           if (installable) {
             const ok = await promptInstall();
-            if (!ok) pushToast("No pressure — the browser menu always works too.", "📲");
+            if (!ok) pushToast("No pressure — the browser menu always works too.", "install");
           } else {
             setHint(true);
           }
@@ -57,7 +58,7 @@ function InstallButton() {
         aria-label="Install this app"
         title="Install app"
       >
-        📲
+        <Icon name="install" size={18} />
       </button>
       <Modal open={hint} onClose={() => setHint(false)} title="Add to home screen">
         <ol className="steps">
@@ -100,12 +101,12 @@ export default function Toolbar() {
           const next = !settings.soundOn;
           updateSettings({ soundOn: next });
           if (next) window.setTimeout(() => sfx.click(), 60);
-          pushToast(next ? "Sound effects on" : "Sound effects muted", next ? "🔊" : "🔇");
+          pushToast(next ? "Sound effects on" : "Sound effects muted", next ? "volume" : "mute");
         }}
         aria-pressed={settings.soundOn}
         title={settings.soundOn ? "Mute sound effects" : "Enable sound effects"}
       >
-        {settings.soundOn ? "🔊" : "🔇"}
+        <Icon name={settings.soundOn ? "volume" : "mute"} size={18} />
       </button>
 
       <button
@@ -117,12 +118,12 @@ export default function Toolbar() {
             haptics.enabled = true;
             haptics.pulse([12, 40, 12]);
           }
-          pushToast(next ? "Haptics on" : "Haptics off", "📳");
+          pushToast(next ? "Haptics on" : "Haptics off", "vibrate");
         }}
         aria-pressed={settings.hapticsOn}
         title="Haptic feedback (mobile)"
       >
-        📳
+        <Icon name="vibrate" size={18} />
       </button>
 
       <div className="themeWrap">
@@ -133,7 +134,7 @@ export default function Toolbar() {
           aria-haspopup="menu"
           title="Change theme"
         >
-          {THEME_EMOJI[settings.theme]}
+          <Icon name={THEME_ICON[settings.theme]} size={18} />
         </button>
         {themeOpen && (
           <>
@@ -149,10 +150,10 @@ export default function Toolbar() {
                     updateSettings({ theme: t });
                     setThemeOpen(false);
                     sfx.click();
-                    pushToast(`Theme: ${THEME_LABELS[t]}`, THEME_EMOJI[t]);
+                    pushToast(`Theme: ${THEME_LABELS[t]}`, THEME_ICON[t]);
                   }}
                 >
-                  <span>{THEME_EMOJI[t]}</span>
+                  <span><Icon name={THEME_ICON[t]} size={16} /></span>
                   {THEME_LABELS[t]}
                 </button>
               ))}
@@ -162,7 +163,7 @@ export default function Toolbar() {
       </div>
 
       <button className="iconBtn" onClick={() => setShareOpen(true)} aria-label="Share my calm card" title="Share card">
-        📸
+        <Icon name="camera" size={18} />
       </button>
 
       <InstallButton />

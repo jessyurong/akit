@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx } from "../../lib/audio/sfx";
 
@@ -55,7 +56,7 @@ export default function Breathing() {
     setPhase("Inhale");
     setTimer(4);
     sfx.chime(440, 1.4, 0.16);
-    say("🌿 Mindful breathing: inhale gently through your nose...");
+    say("Mindful breathing: inhale gently through your nose...");
 
     let current: Phase = "Inhale";
     let remaining = 4;
@@ -69,7 +70,7 @@ export default function Breathing() {
         remaining = PLAN[current].seconds;
         setPhase(current);
         sfx.chime(PLAN[current].tone, 1.2, 0.13);
-        say(`🌿 ${PLAN[current].cue}`);
+        say(`${PLAN[current].cue}`);
         if (current === "Inhale") {
           bump("breaths");
           addScore(2, "breathing");
@@ -81,7 +82,8 @@ export default function Breathing() {
 
   return (
     <Tile
-      title="🧘 4-4-4 Calm Breathing"
+      title="4-4-4 Calm Breathing"
+      icon="breath"
       desc="Follow the glowing orb for a nervous system reset."
       action={<span className="phaseBadge">{active ? phase : "Ready"}</span>}
       footer={<span>{cycles} cycles completed · 1 cycle ≈ 14s</span>}
@@ -89,7 +91,9 @@ export default function Breathing() {
     >
       <div className="breathOrbContainer">
         <div className={`breathOrb ${active ? `breathing-${phase.toLowerCase()}` : ""}`}>
-          <span className="orbIcon">🌿</span>
+          <span className="orbIcon">
+            <Icon name="leaf" size={22} />
+          </span>
           {active && <span className="orbTimer">{timer}s</span>}
         </div>
       </div>

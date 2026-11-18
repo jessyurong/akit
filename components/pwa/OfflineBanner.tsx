@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Icon } from "../icons";
 
 export default function OfflineBanner() {
   const [online, setOnline] = useState(true);
@@ -20,7 +21,8 @@ export default function OfflineBanner() {
 
   return (
     <div className="offlineBar" role="status">
-      📴 You&apos;re offline — toys, music, and drawings still work.
+      <Icon name="offline" size={15} />
+      <span>You&apos;re offline — toys, music, and drawings still work.</span>
     </div>
   );
 }

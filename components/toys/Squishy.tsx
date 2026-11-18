@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx, haptics } from "../../lib/audio/sfx";
 
@@ -44,17 +45,19 @@ export default function Squishy() {
     if (next % 10 === 0) {
       sfx.chime(659.25, 1);
       haptics.pulse([20, 40, 20]);
-      say(`🔥 SQUISH COMBO! ${next} squishes delivered. Your thumbs are heroes.`);
+      say(`SQUISH COMBO! ${next} squishes delivered. Your thumbs are heroes.`);
     } else if (next % 25 === 0) {
-      say("🧸 Legendary squish. The jelly has accepted you as one of its own.");
+      say("Legendary squish. The jelly has accepted you as one of its own.");
     }
   };
 
   return (
-    <Tile title="🧸 Squishy Jelly" desc="No thoughts. Just squish." className="squishyCard">
+    <Tile title="Squishy Jelly" icon="jelly" desc="No thoughts. Just squish." className="squishyCard">
       <div className="squishContainer">
         <button className={`squishBtn ${squishing ? "squished" : ""}`} onClick={squish}>
-          <span className="squishEmoji">💜</span>
+          <span className="squishEmoji">
+            <Icon name="heart" size={22} />
+          </span>
           <span>{label}</span>
         </button>
       </div>

@@ -1,3 +1,5 @@
+import type { IconName } from "../components/icons";
+
 export type ThemeName = "auto" | "dawn" | "day" | "dusk" | "night";
 export type ResolvedTheme = Exclude<ThemeName, "auto">;
 
@@ -16,12 +18,12 @@ export const THEME_LABELS: Record<ThemeName, string> = {
   night: "Night",
 };
 
-export const THEME_EMOJI: Record<ThemeName, string> = {
-  auto: "🌗",
-  dawn: "🌅",
-  day: "☀️",
-  dusk: "🌆",
-  night: "🌙",
+export const THEME_ICON: Record<ThemeName, IconName> = {
+  auto: "theme",
+  dawn: "sunrise",
+  day: "sun",
+  dusk: "sunset",
+  night: "moon",
 };
 
 export function resolveTheme(theme: ThemeName, now = new Date()): ResolvedTheme {

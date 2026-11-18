@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx, haptics } from "../../lib/audio/sfx";
 
@@ -59,12 +60,13 @@ export default function Spinner() {
     sfx.click();
     haptics.pulse(10);
     addScore(2, "spinner");
-    if (boosted > 0 && boosted % 8 === 0) say("🌪️ That spinner is officially out of control. Beautiful.");
+    if (boosted > 0 && boosted % 8 === 0) say("That spinner is officially out of control. Beautiful.");
   };
 
   return (
     <Tile
-      title="🌪️ Kinetic Spinner"
+      title="Kinetic Spinner"
+      icon="spinner"
       desc="Tap to spin faster. Soothing momentum, zero maintenance."
       action={
         <button className="smallBtn" onClick={boost}>
@@ -75,10 +77,12 @@ export default function Spinner() {
     >
       <div className="spinnerContainer" onClick={boost} role="presentation">
         <div className="spinnerWheel" ref={wheelRef}>
-          <div className="blade blade1">🌀</div>
-          <div className="blade blade2">🌀</div>
-          <div className="blade blade3">🌀</div>
-          <div className="spinnerCore">✨</div>
+          <span className="blade">
+            <Icon name="spinner" size={86} />
+          </span>
+          <div className="spinnerCore">
+            <Icon name="sparkle" size={20} />
+          </div>
         </div>
       </div>
     </Tile>

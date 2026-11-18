@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { Modal } from "./ui";
 import { useGame, type Mood } from "../lib/game";
 import { sfx } from "../lib/audio/sfx";
+import { Icon } from "./icons";
 import type { ResolvedTheme } from "../lib/theme";
 
 const W = 1080;
@@ -436,7 +437,7 @@ export default function ShareCard() {
     if (!blob) return;
 
     const file = new File([blob], "anti-stress-card.png", { type: "image/png" });
-    const text = `I collected ${stats.score} serotonin points in the Anti-Stress Playground 🫧`;
+    const text = `I collected ${stats.score} serotonin points in the Anti-Stress Playground.`;
 
     if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
       try {
@@ -453,7 +454,7 @@ export default function ShareCard() {
     a.download = "anti-stress-card.png";
     a.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 4000);
-    pushToast("Card saved to your downloads 📸", "✅");
+    pushToast("Card saved to your downloads.", "check");
   };
 
   return (
@@ -464,7 +465,7 @@ export default function ShareCard() {
       </div>
       <div className="shareActions">
         <button className="primaryBtn" onClick={share}>
-          📤 Share card
+          <Icon name="share" size={16} /> Share card
         </button>
         <button className="smallBtn" onClick={() => setShareOpen(false)}>
           Close

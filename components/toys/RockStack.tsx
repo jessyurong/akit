@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx, haptics } from "../../lib/audio/sfx";
 import { clamp } from "../../lib/storage";
@@ -46,7 +47,7 @@ export default function RockStack() {
       setStatus("lost");
       sfx.squish();
       haptics.pulse([40, 60, 40]);
-      say("💥 Toppled! The stones have spoken. Rebuild — gentler this time.");
+      say("Toppled! The stones have spoken. Rebuild — gentler this time.");
       return;
     }
 
@@ -66,7 +67,7 @@ export default function RockStack() {
       setStatus("won");
       sfx.success();
       addScore(25);
-      say("🏗️ Perfect six-stone cairn. The zen garden is impressed.");
+      say("Perfect six-stone cairn. The zen garden is impressed.");
     } else {
       say(level === 0 ? "Nice start. Now align the next one with the stone below." : "Solid placement. Steady hands.");
     }
@@ -74,7 +75,8 @@ export default function RockStack() {
 
   return (
     <Tile
-      title="🪨 Zen Rock Stack"
+      title="Zen Rock Stack"
+      icon="rocks"
       desc="Drag the stone left or right, then release to drop it."
       action={
         <span className="scoreBadge">
@@ -143,7 +145,11 @@ export default function RockStack() {
           />
         )}
 
-        {status === "won" && <div className="rockBadge">+25 Cairn bonus ✨</div>}
+        {status === "won" && (
+          <div className="rockBadge">
+            +25 Cairn bonus <Icon name="sparkle" size={12} />
+          </div>
+        )}
       </div>
       <p className="hint">Small offsets are fine. Big ones make physics sad.</p>
     </Tile>

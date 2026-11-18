@@ -14,6 +14,7 @@ import { haptics } from "./audio/sfx";
 import { ambient } from "./audio/ambient";
 import { loadState, saveState, clamp } from "./storage";
 import { DEFAULT_TRACK_ID } from "./music/tracks";
+import type { IconName } from "../components/icons";
 import {
   resolveTheme,
   THEME_COLORS,
@@ -65,7 +66,7 @@ export interface Stats {
 
 export interface Toast {
   id: number;
-  icon: string;
+  icon: IconName;
   text: string;
 }
 
@@ -77,7 +78,7 @@ interface GameContextValue {
   message: string;
   say: (text: string) => void;
   toasts: Toast[];
-  pushToast: (text: string, icon?: string) => void;
+  pushToast: (text: string, icon?: IconName) => void;
   addScore: (points: number, toy?: ToyId) => void;
   bump: (key: "breaths" | "doodles") => void;
   updateSettings: (patch: Partial<Settings>) => void;
@@ -118,7 +119,7 @@ const DEFAULT_STATS: Stats = {
   lastVisit: "",
 };
 
-const WELCOME = "Click anything. Your brain deserves a playful break. 🌈";
+const WELCOME = "Click anything. Your brain deserves a playful break.";
 
 const GameContext = createContext<GameContextValue | null>(null);
 
@@ -185,7 +186,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   /* --- actions --- */
   const say = useCallback((text: string) => setMessage(text), []);
 
-  const pushToast = useCallback((text: string, icon = "✨") => {
+  const pushToast = useCallback((text: string, icon: IconName = "sparkle") => {
     const id = ++toastId.current;
     setToasts((prev) => [...prev.slice(-2), { id, icon, text }]);
     window.setTimeout(() => {
@@ -213,7 +214,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     ambient.stopAll();
     setCalm(false);
     setResetToken((n) => n + 1);
-    setMessage("🌟 Fresh start! Everything reset to peaceful harmony.");
+    setMessage("Fresh start! Everything reset to peaceful harmony.");
   }, []);
 
   const happiness = useMemo(

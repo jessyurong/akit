@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx } from "../../lib/audio/sfx";
 
@@ -55,8 +56,8 @@ export default function Sparkles() {
     timeout.current = window.setTimeout(() => setParticles([]), 1900);
     say(
       bursts > 4
-        ? "✨ You are officially a sparkle hazard. Keep going."
-        : "✨ Sparkle cannon deployed! Maximum good vibes unleashed.",
+        ? "You are officially a sparkle hazard. Keep going."
+        : "Sparkle cannon deployed! Maximum good vibes unleashed.",
     );
   };
 
@@ -80,13 +81,14 @@ export default function Sparkles() {
         />
       ))}
       <Tile
-        title="✨ Sparkle Chaos"
+        title="Sparkle Chaos"
+        icon="sparkle"
         desc="Release a burst of colorful dopamine confetti."
         className="particleCard"
         footer={<span>{bursts} bursts of serotonin</span>}
       >
         <button className="chaosBtn" onClick={fire}>
-          RELEASE THE SPARKLES ✨
+          <Icon name="sparkle" size={15} /> RELEASE THE SPARKLES
         </button>
       </Tile>
     </>

@@ -125,7 +125,8 @@ export default function DrumKit() {
 
   return (
     <Tile
-      title="🥁 Tiny Drum Kit"
+      title="Tiny Drum Kit"
+      icon="drum"
       desc="Tap a drum. Make a tiny beat — no rhythm required."
       action={
         <button className="smallBtn" onClick={drumRoll}>

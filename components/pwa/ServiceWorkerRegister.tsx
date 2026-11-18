@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { Icon } from "../icons";
 
 export default function ServiceWorkerRegister() {
   const [updateReady, setUpdateReady] = useState(false);
@@ -46,7 +47,9 @@ export default function ServiceWorkerRegister() {
 
   return (
     <div className="updateBar" role="status">
-      <span>🔄 A new version is ready.</span>
+      <span>
+        <Icon name="refresh" size={15} /> A new version is ready.
+      </span>
       <button
         onClick={() => {
           refreshing.current = true;

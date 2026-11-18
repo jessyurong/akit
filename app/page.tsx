@@ -18,11 +18,12 @@ import RockStack from "../components/toys/RockStack";
 import Breathing from "../components/toys/Breathing";
 import Ambient from "../components/toys/Ambient";
 import Canvas from "../components/toys/Canvas";
+import { Icon, type IconName } from "../components/icons";
 
-const SECTIONS = [
-  { id: "instant", label: "🫧 Instant relief" },
-  { id: "play", label: "🎮 Play" },
-  { id: "calm", label: "🌿 Calm & create" },
+const SECTIONS: { id: string; label: string; icon: IconName }[] = [
+  { id: "instant", label: "Instant relief", icon: "bubble" },
+  { id: "play", label: "Play", icon: "gamepad" },
+  { id: "calm", label: "Calm & create", icon: "leaf" },
 ];
 
 export default function Home() {
@@ -50,7 +51,7 @@ export default function Home() {
         <div className="headerSide">
           <div className="score">
             <span className="scoreStar" aria-hidden="true">
-              ✨
+              <Icon name="sparkle" size={18} />
             </span>
             <b>{stats.score.toLocaleString("en-US")}</b>
             <small>serotonin points</small>
@@ -64,7 +65,7 @@ export default function Home() {
 
       <section className="message" aria-live="polite">
         <span className="msgIcon" aria-hidden="true">
-          💬
+          <Icon name="message" size={16} />
         </span>
         <span className="msgText">{message}</span>
       </section>
@@ -72,6 +73,7 @@ export default function Home() {
       <nav className="sectionNav" aria-label="Jump to a section">
         {SECTIONS.map((s) => (
           <button key={s.id} onClick={() => jump(s.id)}>
+            <Icon name={s.icon} size={14} />
             {s.label}
           </button>
         ))}

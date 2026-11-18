@@ -17,7 +17,7 @@ const WISDOM = [
 
 export default function Dice() {
   const { addScore, say } = useGame();
-  const [face, setFace] = useState("🎲");
+  const [face, setFace] = useState("⚄");
   const [rolling, setRolling] = useState(false);
   const interval = useRef<number | null>(null);
 
@@ -43,13 +43,13 @@ export default function Dice() {
         setRolling(false);
         addScore(1, "dice");
         sfx.chime(523.25, 0.6, 0.12);
-        say(`🎲 ${final} — ${WISDOM[Math.floor(Math.random() * WISDOM.length)]}`);
+        say(`${final} — ${WISDOM[Math.floor(Math.random() * WISDOM.length)]}`);
       }
     }, 60);
   };
 
   return (
-    <Tile title="🎲 Lucky Dice" desc="Ask a silly question. Roll for cosmic wisdom." className="diceCard">
+    <Tile title="Lucky Dice" icon="dice" desc="Ask a silly question. Roll for cosmic wisdom." className="diceCard">
       <button
         className={`diceBtn ${rolling ? "rolling" : ""}`}
         onClick={roll}

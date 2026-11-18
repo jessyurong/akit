@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useGame } from "../lib/game";
+import { Icon } from "./icons";
 
 export default function Toasts() {
   const { toasts } = useGame();
@@ -10,7 +11,9 @@ export default function Toasts() {
     <div className="toastStack" role="status" aria-live="polite">
       {toasts.map((t) => (
         <div key={t.id} className="toast">
-          <span className="toastIcon">{t.icon}</span>
+          <span className="toastIcon">
+            <Icon name={t.icon} size={16} />
+          </span>
           <span>{t.text}</span>
         </div>
       ))}

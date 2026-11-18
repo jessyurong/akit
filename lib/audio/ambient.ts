@@ -1,3 +1,4 @@
+import type { IconName } from "../../components/icons";
 import { audio, soundCtx } from "./engine";
 
 export type AmbientId = "rain" | "waves" | "bowl" | "fire" | "crickets";
@@ -5,16 +6,16 @@ export type AmbientId = "rain" | "waves" | "bowl" | "fire" | "crickets";
 export interface AmbientDef {
   id: AmbientId;
   label: string;
-  emoji: string;
+  icon: IconName;
   hint: string;
 }
 
 export const AMBIENT_DEFS: AmbientDef[] = [
-  { id: "rain", label: "Soft Rain", emoji: "🌧️", hint: "Low-passed noise, like rain on a window" },
-  { id: "waves", label: "Ocean Waves", emoji: "🌊", hint: "Slow swelling surf" },
-  { id: "bowl", label: "Singing Bowl", emoji: "🔔", hint: "216 Hz + 432 Hz harmonic drone" },
-  { id: "fire", label: "Fireplace", emoji: "🔥", hint: "Warm crackle and hiss" },
-  { id: "crickets", label: "Night Crickets", emoji: "🦗", hint: "A quiet summer evening" },
+  { id: "rain", label: "Soft Rain", icon: "rain", hint: "Low-passed noise, like rain on a window" },
+  { id: "waves", label: "Ocean Waves", icon: "waves", hint: "Slow swelling surf" },
+  { id: "bowl", label: "Singing Bowl", icon: "bowl", hint: "216 Hz + 432 Hz harmonic drone" },
+  { id: "fire", label: "Fireplace", icon: "fire", hint: "Warm crackle and hiss" },
+  { id: "crickets", label: "Night Crickets", icon: "cricket", hint: "A quiet summer evening" },
 ];
 
 interface Layer {

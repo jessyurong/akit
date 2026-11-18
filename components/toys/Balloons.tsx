@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx } from "../../lib/audio/sfx";
 
@@ -33,7 +34,7 @@ export default function Balloons() {
     setBalloons((prev) => prev.map((b) => (b.id === id ? { ...b, popped: true } : b)));
     sfx.pop(0.8);
     addScore(2, "balloons");
-    say("💥 Pop! The balloon had no regrets.");
+    say("Pop! The balloon had no regrets.");
   };
 
   const more = () => {
@@ -46,7 +47,8 @@ export default function Balloons() {
 
   return (
     <Tile
-      title="🎈 Balloon Pop"
+      title="Balloon Pop"
+      icon="balloon"
       desc="Tap to pop the floating balloons into thin air."
       action={
         <button className="smallBtn" onClick={more}>
@@ -65,7 +67,7 @@ export default function Balloons() {
             disabled={b.popped}
             aria-label={b.popped ? "Popped balloon" : "Pop balloon"}
           >
-            {b.popped ? "💥" : "🎈"}
+            {b.popped ? <Icon name="sparkle" size={24} /> : <Icon name="balloon" size={46} />}
           </button>
         ))}
       </div>

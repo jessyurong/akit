@@ -45,13 +45,14 @@ export default function SynthPad() {
 
     addScore(1, "synth");
     if (Math.random() < 0.22) {
-      say("🎹 That was a whole vibe. Keep going, composer.");
+      say("That was a whole vibe. Keep going, composer.");
     }
   };
 
   return (
     <Tile
-      title="🎹 Pocket Synth"
+      title="Pocket Synth"
+      icon="synth"
       desc="Eight pads, one pentatonic scale. You literally cannot play a wrong note."
       action={
         <div className="toolBtns">

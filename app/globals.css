@@ -861,6 +861,17 @@ header {
 .balloonItem:nth-child(4) { animation-delay: 1.2s; }
 .balloonItem:nth-child(5) { animation-delay: 1.6s; }
 
+/* plump, filled balloon glyphs */
+.balloonItem svg {
+  fill: currentColor;
+  fill-opacity: 0.32;
+  stroke-width: 2;
+}
+
+.balloonPopped svg {
+  fill-opacity: 0;
+}
+
 .balloonPopped {
   animation: none;
   font-size: 1.9rem;
@@ -946,13 +957,14 @@ header {
 
 .blade {
   position: absolute;
-  font-size: 1.7rem;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  opacity: 0.9;
   user-select: none;
+  pointer-events: none;
 }
-
-.blade1 { top: -10px; }
-.blade2 { bottom: 0; left: -10px; }
-.blade3 { bottom: 0; right: -10px; }
 
 .spinnerCore {
   width: 30px;
@@ -3066,4 +3078,63 @@ footer {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ==========================================================================
+   SVG icon system
+   ========================================================================== */
+
+svg.icon {
+  display: block;
+  flex: none;
+}
+
+.cardIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  background: var(--chip);
+  color: var(--accent);
+  flex: none;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cardTitle h2 {
+  margin: 0;
+}
+
+.mochiHeart {
+  color: #f472b6;
+  display: inline-flex;
+}
+
+.scoreStar,
+.msgIcon,
+.toastIcon,
+.orbIcon,
+.spinnerCore,
+.blade,
+.offlineEmoji,
+.squishEmoji {
+  display: grid;
+  place-items: center;
+}
+
+.smallBtn,
+.primaryBtn,
+.bonusTag,
+.rockBadge,
+.sectionNav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }

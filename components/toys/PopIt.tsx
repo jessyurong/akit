@@ -23,7 +23,7 @@ export default function PopIt() {
     addScore(1, "popit");
     if (next.every(Boolean)) {
       sfx.chime(784, 0.8);
-      say("🌈 Whole sheet flipped! Extremely satisfying. +8");
+      say("Whole sheet flipped! Extremely satisfying. +8");
       addScore(8);
     }
   };
@@ -32,7 +32,8 @@ export default function PopIt() {
 
   return (
     <Tile
-      title="🟣 Silicone Pop-It"
+      title="Silicone Pop-It"
+      icon="popit"
       desc="Press the rainbow dimples back and forth."
       action={
         <button

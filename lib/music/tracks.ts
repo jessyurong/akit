@@ -1,3 +1,5 @@
+import type { IconName } from "../../components/icons";
+
 /**
  * Track list. The first entry is the default soundtrack and always loops.
  * To use your own music, drop the files into `public/audio/` and update the
@@ -16,7 +18,7 @@ export interface Track {
   /** CSS gradient for the artwork */
   gradient: [string, string];
   bpm: number;
-  emoji: string;
+  icon: IconName;
 }
 
 export const DEFAULT_TRACK_ID = "island";
@@ -30,7 +32,7 @@ export const TRACKS: Track[] = [
     mood: "Comfort",
     gradient: ["#fbbf24", "#38bdf8"],
     bpm: 88,
-    emoji: "🏝️",
+    icon: "island",
   },
   {
     id: "calm",
@@ -40,7 +42,7 @@ export const TRACKS: Track[] = [
     mood: "Calm",
     gradient: ["#38bdf8", "#a855f7"],
     bpm: 60,
-    emoji: "🌊",
+    icon: "waves",
   },
   {
     id: "focus",
@@ -50,7 +52,7 @@ export const TRACKS: Track[] = [
     mood: "Focus",
     gradient: ["#22c55e", "#0ea5e9"],
     bpm: 76,
-    emoji: "🌿",
+    icon: "leaf",
   },
   {
     id: "sleep",
@@ -60,7 +62,7 @@ export const TRACKS: Track[] = [
     mood: "Sleep",
     gradient: ["#6366f1", "#db2777"],
     bpm: 48,
-    emoji: "🌙",
+    icon: "moon",
   },
   {
     id: "playful",
@@ -70,7 +72,7 @@ export const TRACKS: Track[] = [
     mood: "Playful",
     gradient: ["#f59e0b", "#ec4899"],
     bpm: 104,
-    emoji: "🫧",
+    icon: "bubble",
   },
 ];
 

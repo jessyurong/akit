@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useGame } from "../lib/game";
 import { useMusic } from "../lib/music/player";
 import { sfx, haptics } from "../lib/audio/sfx";
+import { Icon } from "./icons";
 
 const LINES = [
   "Mochi believes in you. Statistically speaking.",
@@ -222,7 +223,7 @@ export default function Mochi() {
     sfx.chime(next % 5 === 0 ? 1046.5 : 783.99, 0.8, 0.1);
     haptics.pulse(14);
     showBubble(LINES[Math.floor(Math.random() * LINES.length)], 4200);
-    say("🫧 Mochi appreciates the attention. Mood +1.");
+    say("Mochi appreciates the attention. Mood +1.");
 
     const id = ++heartId.current;
     setHearts((prev) => [
@@ -314,7 +315,7 @@ export default function Mochi() {
           }
           aria-hidden="true"
         >
-          💗
+          <Icon name="heart" size={Math.round(h.size * 21)} />
         </span>
       ))}
       <span className="mochiLabel">

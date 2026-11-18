@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx } from "../../lib/audio/sfx";
 
@@ -27,14 +28,15 @@ export default function Frog() {
     window.setTimeout(() => setFrog((f) => ({ ...f, hopping: false })), 230);
     say(
       frog.caught > 6
-        ? `🐸 ${frog.caught + 1} catches! The frog respects your reflexes.`
-        : "🐸 FROG CAPTURED! It did a graceful backflip and escaped.",
+        ? `${frog.caught + 1} catches! The frog respects your reflexes.`
+        : "FROG CAPTURED! It did a graceful backflip and escaped.",
     );
   };
 
   return (
     <Tile
-      title="🐸 Pond Hopper"
+      title="Pond Hopper"
+      icon="frog"
       desc="Test your reflexes. Can you tap the speedy frog?"
       action={<span className="scoreBadge">{frog.caught} caught</span>}
     >
@@ -46,7 +48,7 @@ export default function Frog() {
           onClick={catchFrog}
           aria-label="Catch the frog"
         >
-          🐸
+          <Icon name="frog" size={34} />
         </button>
       </div>
     </Tile>

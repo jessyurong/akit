@@ -216,12 +216,13 @@ export default function KoiPond() {
     setTaps((n) => n + 1);
     addScore(1, "koi");
     sfx.chime(660 + Math.random() * 220, 0.5, 0.06);
-    if (taps === 0) say("🐟 The koi heard you. Tap again — they're curious little fish.");
+    if (taps === 0) say("The koi heard you. Tap again — they're curious little fish.");
   };
 
   return (
     <Tile
-      title="🎏 Koi Pond"
+      title="Koi Pond"
+      icon="koi"
       desc="Tap the water. Ripples spread, koi come to investigate."
       className="koiCard"
       footer={<span>{taps === 0 ? "Yes, the fish are real (enough)" : `${taps} ripples made`}</span>}

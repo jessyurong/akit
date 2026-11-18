@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useMusic } from "../lib/music/player";
 import { TRACKS } from "../lib/music/tracks";
 import { sfx } from "../lib/audio/sfx";
+import { Icon } from "./icons";
 
 function fmt(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -37,7 +38,7 @@ export default function MusicPlayer() {
               className="musicArt"
               style={{ background: `linear-gradient(140deg, ${track.gradient[0]}, ${track.gradient[1]})` }}
             >
-              {track.emoji}
+              <Icon name={track.icon} size={26} />
             </div>
             <div className="musicMeta">
               <strong>{track.title}</strong>
@@ -69,16 +70,18 @@ export default function MusicPlayer() {
 
           <div className="musicControls">
             <button className="iconRound" onClick={prev} aria-label="Previous track">
-              ⏮
+              <Icon name="prev" size={18} />
             </button>
             <button className="iconRound playRound" onClick={toggle} aria-label={playing ? "Pause" : "Play"}>
-              {playing ? "⏸" : "▶"}
+              <Icon name={playing ? "pause" : "play"} size={18} />
             </button>
             <button className="iconRound" onClick={next} aria-label="Next track">
-              ⏭
+              <Icon name="next" size={18} />
             </button>
             <label className="volSlider">
-              <span aria-hidden="true">🔊</span>
+              <span aria-hidden="true">
+                <Icon name="volume" size={16} />
+              </span>
               <input
                 type="range"
                 min={0}
@@ -127,11 +130,11 @@ export default function MusicPlayer() {
             <small>{playing ? `${track.mood} · playing` : "Tap to start the vibes"}</small>
           </span>
           <span className="pillState" aria-hidden="true">
-            {playing ? "⏸" : "▶"}
+            <Icon name={playing ? "pause" : "play"} size={16} />
           </span>
         </button>
         <button className="pillMini" onClick={next} aria-label="Next track">
-          ⏭
+          <Icon name="next" size={16} />
         </button>
         <button
           className="pillMini"

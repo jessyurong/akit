@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { Icon, type IconName } from "./icons";
 
 export function Tile({
   title,
+  icon,
   desc,
   action,
   footer,
@@ -13,6 +15,7 @@ export function Tile({
   children,
 }: {
   title: string;
+  icon?: IconName;
   desc?: string;
   action?: React.ReactNode;
   footer?: React.ReactNode;
@@ -24,7 +27,14 @@ export function Tile({
   return (
     <article id={id} className={`card ${wide ? "wide" : ""} ${className}`}>
       <div className="cardHead">
-        <h2>{title}</h2>
+        <div className="cardTitle">
+          {icon ? (
+            <span className="cardIcon" aria-hidden="true">
+              <Icon name={icon} size={18} />
+            </span>
+          ) : null}
+          <h2>{title}</h2>
+        </div>
         {action}
       </div>
       {desc ? <p className="cardDesc">{desc}</p> : null}

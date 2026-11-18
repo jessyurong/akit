@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Tile } from "../ui";
+import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx } from "../../lib/audio/sfx";
 
@@ -108,7 +109,8 @@ export default function Canvas() {
 
   return (
     <Tile
-      title="🖌️ Zen Canvas"
+      title="Zen Canvas"
+      icon="brush"
       desc="Finger paint freely. No mistakes here, only happy little lines."
       wide
       className="doodleCard"
@@ -135,7 +137,7 @@ export default function Canvas() {
               onClick={() => setEraser((v) => !v)}
               aria-pressed={eraser}
             >
-              🧹 {eraser ? "Eraser on" : "Eraser"}
+              <Icon name="eraser" size={14} /> {eraser ? "Eraser on" : "Eraser"}
             </button>
             <button className="smallBtn" onClick={() => setSize((s) => (s === 4 ? 8 : s === 8 ? 16 : 4))}>
               Size {size}px

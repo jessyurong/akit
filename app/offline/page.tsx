@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { Icon } from "../../components/icons";
 
 export default function Offline() {
   return (
     <main className="offlinePage">
       <div className="offlineCard">
-        <span className="offlineEmoji">📴</span>
+        <span className="offlineEmoji" aria-hidden="true">
+          <Icon name="offline" size={34} />
+        </span>
         <h1>You&apos;re offline</h1>
         <p>
           The playground still works from your home screen — bubbles, breathing, music, and drawings are all cached.
