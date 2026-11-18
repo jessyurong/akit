@@ -38,7 +38,7 @@ export type ToyId =
   | "ambient"
   | "canvas"
   | "synth"
-  | "sand"
+  | "drums"
   | "koi"
   | "rocks"
   | "mochi";

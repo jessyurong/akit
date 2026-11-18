@@ -12,7 +12,7 @@ import Frog from "../components/toys/Frog";
 import Dice from "../components/toys/Dice";
 import Sparkles from "../components/toys/Sparkles";
 import SynthPad from "../components/toys/SynthPad";
-import KineticSand from "../components/toys/KineticSand";
+import DrumKit from "../components/toys/DrumKit";
 import KoiPond from "../components/toys/KoiPond";
 import RockStack from "../components/toys/RockStack";
 import Breathing from "../components/toys/Breathing";
@@ -37,7 +37,7 @@ export default function Home() {
       <header>
         <div>
           <div className="badgeRow">
-            <span className="eyebrow">Designed for Leah Kate only</span>
+            <span className="eyebrow"></span>
           </div>
           <h1>
             Anti-Stress <span>Playground</span>
@@ -101,7 +101,7 @@ export default function Home() {
           <Dice />
           <Sparkles />
           <SynthPad />
-          <KineticSand />
+          <DrumKit />
           <KoiPond />
           <RockStack />
         </div>

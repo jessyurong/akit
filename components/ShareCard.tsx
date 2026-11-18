@@ -60,7 +60,7 @@ const TOY_LABELS: Record<string, string> = {
   ambient: "Ambient Mixer",
   canvas: "Zen Canvas",
   synth: "Pocket Synth",
-  sand: "Kinetic Sand",
+  drums: "Tiny Drum Kit",
   koi: "Koi Pond",
   rocks: "Zen Rock Stack",
   mochi: "Mochi",

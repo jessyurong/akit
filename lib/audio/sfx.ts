@@ -4,6 +4,8 @@ import { audio, soundCtx } from "./engine";
 /* Haptics                                                             */
 /* ------------------------------------------------------------------ */
 
+export type DrumKind = "kick" | "snare" | "tom" | "hat" | "crash" | "rim";
+
 export const haptics = {
   enabled: true,
   pulse(pattern: number | number[] = 12) {
@@ -117,6 +119,86 @@ export const sfx = {
     if (!ctx || !out) return;
     const { g } = osc(ctx, "square", 880, 0, 0.035, 0.05, 0.002);
     g.connect(out);
+  },
+
+  /** Tiny acoustic drum kit — all synthesized, no samples. */
+  drum(kind: DrumKind) {
+    const ctx = soundCtx();
+    const out = audio.busForSfx();
+    if (!ctx || !out) return;
+
+    const now = ctx.currentTime;
+
+    const noise = (
+      peak: number,
+      decay: number,
+      filterType: BiquadFilterType,
+      freq: number,
+      q = 0.9,
+    ) => {
+      const src = ctx.createBufferSource();
+      src.buffer = audio.noiseBuffer(ctx);
+      const filter = ctx.createBiquadFilter();
+      filter.type = filterType;
+      filter.frequency.setValueAtTime(freq, now);
+      filter.Q.value = q;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(peak, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(out);
+      src.start(now);
+      src.stop(now + decay + 0.02);
+    };
+
+    const body = (type: OscillatorType, from: number, to: number, decay: number, peak: number) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(from, now);
+      o.frequency.exponentialRampToValueAtTime(Math.max(30, to), now + decay * 0.8);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(peak, now + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+      o.connect(g);
+      g.connect(out);
+      o.start(now);
+      o.stop(now + decay + 0.02);
+    };
+
+    switch (kind) {
+      case "kick":
+        body("sine", 150, 44, 0.34, 0.55);
+        noise(0.08, 0.03, "lowpass", 900);
+        haptics.pulse(20);
+        break;
+      case "snare":
+        noise(0.26, 0.18, "highpass", 1600, 0.7);
+        body("triangle", 190, 150, 0.12, 0.18);
+        haptics.pulse([8, 14, 8]);
+        break;
+      case "tom":
+        body("sine", 250, 128, 0.26, 0.4);
+        noise(0.05, 0.08, "lowpass", 700);
+        haptics.pulse(12);
+        break;
+      case "hat":
+        noise(0.13, 0.06, "highpass", 8200, 1.2);
+        noise(0.06, 0.03, "bandpass", 11000, 2);
+        haptics.pulse(5);
+        break;
+      case "crash":
+        noise(0.17, 1.05, "highpass", 3600, 0.6);
+        noise(0.05, 0.5, "bandpass", 7800, 1.5);
+        haptics.pulse([6, 20, 6]);
+        break;
+      case "rim":
+        body("square", 1500, 900, 0.045, 0.12);
+        noise(0.09, 0.04, "bandpass", 2600, 2);
+        haptics.pulse(6);
+        break;
+    }
   },
 
   whoosh() {
