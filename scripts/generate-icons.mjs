@@ -1,214 +1,185 @@
-/**
- * Generates the PWA icon set with zero dependencies.
- * Usage: node scripts/generate-icons.mjs
- */
-import { deflateSync } from "node:zlib";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+// Generates every PNG icon (app install, maskable, Apple touch, favicon + .ico)
+// from one cute strawberry artwork. Run with: npm run icons
+import sharp from "sharp";
+import { mkdir, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
-const OUT = resolve("public/icons");
-mkdirSync(OUT, { recursive: true });
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const outDir = join(root, "public", "icons");
 
-/* ---------------- PNG writer ---------------- */
+const BG = `
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#8b5cf6"/>
+    <stop offset="0.55" stop-color="#6366f1"/>
+    <stop offset="1" stop-color="#38bdf8"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="0.5" cy="0.42" r="0.5">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.26"/>
+    <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+  </radialGradient>`;
 
-const CRC_TABLE = (() => {
-  const table = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    table[n] = c >>> 0;
-  }
-  return table;
-})();
+const DEFS = `
+  <linearGradient id="berry" x1="0.22" y1="0.05" x2="0.82" y2="1">
+    <stop offset="0" stop-color="#ff9daa"/>
+    <stop offset="0.42" stop-color="#f43f52"/>
+    <stop offset="1" stop-color="#c2183a"/>
+  </linearGradient>
+  <linearGradient id="leaf" x1="0.2" y1="0" x2="0.6" y2="1">
+    <stop offset="0" stop-color="#b4f8c8"/>
+    <stop offset="0.45" stop-color="#3ecb5e"/>
+    <stop offset="1" stop-color="#187a3c"/>
+  </linearGradient>
+  <linearGradient id="stem" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#5fe08c"/>
+    <stop offset="1" stop-color="#187a3c"/>
+  </linearGradient>
+  <radialGradient id="iris" cx="0.38" cy="0.32" r="0.85">
+    <stop offset="0" stop-color="#6d95e4"/>
+    <stop offset="0.55" stop-color="#1b2c5e"/>
+    <stop offset="1" stop-color="#0a1128"/>
+  </radialGradient>
+  <radialGradient id="blush" cx="0.5" cy="0.5" r="0.55">
+    <stop offset="0" stop-color="#ffc6d4" stop-opacity="0.95"/>
+    <stop offset="0.6" stop-color="#ff8aa6" stop-opacity="0.75"/>
+    <stop offset="1" stop-color="#ff8aa6" stop-opacity="0"/>
+  </radialGradient>`;
 
-function crc32(buf) {
-  let c = 0xffffffff;
-  for (const byte of buf) c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
+// The strawberry itself — no background, drawn inside a 512x512 box.
+const seed = (x, y, rot) =>
+  `<ellipse cx="${x}" cy="${y}" rx="5.4" ry="8.2" transform="rotate(${rot} ${x} ${y})" fill="#ffd45e" opacity="0.96"/>`;
+
+const SEEDS = [
+  seed(196, 232, -14),
+  seed(256, 222, 0),
+  seed(316, 232, 14),
+  seed(166, 292, -20),
+  seed(346, 292, 20),
+  seed(180, 356, -16),
+  seed(332, 356, 16),
+  seed(210, 396, -10),
+  seed(302, 396, 10),
+  seed(238, 424, -6),
+  seed(274, 428, 6),
+].join("\n");
+
+const leaf = (cx, cy, rot, rx, ry) =>
+  `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})"
+     fill="url(#leaf)" stroke="#0f5c33" stroke-width="6"/>`;
+
+const BODY = `M256 456
+  C 214 432 176 398 160 354
+  C 146 316 143 276 150 246
+  C 158 210 196 190 256 190
+  C 316 190 354 210 362 246
+  C 369 276 366 316 352 354
+  C 336 398 298 432 256 456 Z`;
+
+const ART = `
+  <clipPath id="bodyClip"><path d="${BODY}"/></clipPath>
+
+  <ellipse cx="256" cy="262" rx="206" ry="200" fill="url(#glow)"/>
+
+  <!-- stem -->
+  <rect x="247" y="92" width="17" height="86" rx="8.5"
+        transform="rotate(-8 255.5 135)" fill="url(#stem)" stroke="#0f5c33" stroke-width="5"/>
+
+  <!-- leafy crown, fanned out -->
+  ${leaf(256, 156, 0, 22, 50)}
+  ${leaf(234, 160, -31, 20, 46)}
+  ${leaf(278, 160, 31, 20, 46)}
+  ${leaf(217, 177, -62, 18, 42)}
+  ${leaf(295, 177, 62, 18, 42)}
+
+  <!-- berry body -->
+  <path d="${BODY}" fill="url(#berry)" stroke="#96122c" stroke-width="10" stroke-linejoin="round"/>
+
+  <g clip-path="url(#bodyClip)">
+    <!-- shoulder shine -->
+    <ellipse cx="203" cy="228" rx="34" ry="19" transform="rotate(-28 203 228)"
+             fill="#ffffff" opacity="0.38"/>
+
+    ${SEEDS}
+
+    <!-- blush -->
+    <ellipse cx="168" cy="330" rx="34" ry="18" fill="url(#blush)"/>
+    <ellipse cx="344" cy="330" rx="34" ry="18" fill="url(#blush)"/>
+  </g>
+
+  <!-- eyes -->
+  <ellipse cx="206" cy="290" rx="31" ry="34" fill="#ffffff" stroke="#8d0f28" stroke-width="4"/>
+  <ellipse cx="306" cy="290" rx="31" ry="34" fill="#ffffff" stroke="#8d0f28" stroke-width="4"/>
+  <ellipse cx="207" cy="292" rx="24.5" ry="27.5" fill="url(#iris)"/>
+  <ellipse cx="307" cy="292" rx="24.5" ry="27.5" fill="url(#iris)"/>
+  <circle cx="197" cy="279" r="9.5" fill="#ffffff"/>
+  <circle cx="297" cy="279" r="9.5" fill="#ffffff"/>
+  <circle cx="216" cy="305" r="4.6" fill="#ffffff" opacity="0.9"/>
+  <circle cx="316" cy="305" r="4.6" fill="#ffffff" opacity="0.9"/>
+
+  <!-- smile -->
+  <path d="M231 336 Q 256 364 281 336" fill="none" stroke="#4a0a1c"
+        stroke-width="9" stroke-linecap="round"/>
+`;
+
+const fullIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>${BG}${DEFS}</defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  ${ART}
+</svg>`;
+
+// Favicon needs fewer details to stay readable at 16–32px.
+const smallIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>${BG}${DEFS}</defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(256 258) scale(1.12) translate(-256 -256)">${ART.replace(SEEDS, "")}</g>
+</svg>`;
+
+const maskableIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>${BG}${DEFS}</defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g transform="translate(256 256) scale(0.84) translate(-256 -250)">${ART}</g>
+</svg>`;
+
+const render = (svg, size) =>
+  sharp(Buffer.from(svg), { density: 512 }).resize(size, size, { fit: "contain" }).png({ compressionLevel: 9 }).toBuffer();
+
+await mkdir(outDir, { recursive: true });
+
+const sizes = [
+  [512, "icon-512.png"],
+  [384, "icon-384.png"],
+  [192, "icon-192.png"],
+  [180, "apple-touch-icon.png"],
+  [32, "favicon-32.png"],
+];
+
+for (const [size, name] of sizes) {
+  const svg = size <= 48 ? smallIcon : fullIcon;
+  const buf = await render(svg, size);
+  await writeFile(join(outDir, name), buf);
+  console.log(`  ${name.padEnd(22)} ${(buf.length / 1024).toFixed(1)} KB`);
 }
 
-function chunk(type, data) {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(body));
-  return Buffer.concat([len, body, crc]);
-}
+const maskable = await render(maskableIcon, 512);
+await writeFile(join(outDir, "maskable-512.png"), maskable);
+console.log(`  ${"maskable-512.png".padEnd(22)} ${(maskable.length / 1024).toFixed(1)} KB`);
 
-function encodePNG(width, height, rgba) {
-  const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // RGBA
-  ihdr[10] = 0;
-  ihdr[11] = 0;
-  ihdr[12] = 0;
+// Vector copy for anyone who wants it.
+await writeFile(join(root, "public", "icon.svg"), fullIcon);
 
-  const stride = width * 4;
-  const raw = Buffer.alloc((stride + 1) * height);
-  for (let y = 0; y < height; y++) {
-    raw[y * (stride + 1)] = 0;
-    rgba.copy(raw, y * (stride + 1) + 1, y * stride, (y + 1) * stride);
-  }
-  const idat = deflateSync(raw, { level: 9 });
-  return Buffer.concat([sig, chunk("IHDR", ihdr), chunk("IDAT", idat), chunk("IEND", Buffer.alloc(0))]);
-}
-
-/* ---------------- Drawing ---------------- */
-
-const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
-const mix = (a, b, t) => a + (b - a) * t;
-const mixColor = (c1, c2, t) => [mix(c1[0], c2[0], t), mix(c1[1], c2[1], t), mix(c1[2], c2[2], t)];
-
-function rotEllipse(x, y, rx, ry, ang) {
-  const c = Math.cos(-ang);
-  const s = Math.sin(-ang);
-  const nx = (x * c - y * s) / rx;
-  const ny = (x * s + y * c) / ry;
-  return nx * nx + ny * ny;
-}
-
-function colorAt(u, v, scale) {
-  // Background gradient: violet → indigo → sky
-  const t = clamp((u * 0.55 + v * 0.75) / 1.2);
-  let rgb = t < 0.55 ? mixColor([124, 58, 237], [99, 102, 241], t / 0.55) : mixColor([99, 102, 241], [56, 189, 248], (t - 0.55) / 0.45);
-
-  // Recenter for maskable safe zone
-  const cu = (u - 0.5) / scale + 0.5;
-  const cv = (v - 0.5) / scale + 0.5;
-
-  // Soft glow behind the berry
-  const glow = Math.hypot(cu - 0.5, cv - 0.45);
-  if (glow < 0.44) {
-    const k = 1 - glow / 0.44;
-    rgb = mixColor(rgb, [255, 255, 255], 0.16 * k * k);
-  }
-
-  /* ---------------- strawberry body ---------------- */
-  const bx = 0.5;
-  const by = 0.43;
-  const dx = cu - bx;
-  const dy = cv - by;
-
-  const halfWidth = (y) => {
-    if (y <= 0) return 0.3 * Math.sqrt(Math.max(0, 1 - (y / 0.25) ** 2));
-    return 0.3 * Math.pow(Math.max(0, 1 - y / 0.41), 0.6);
-  };
-
-  const hw = halfWidth(dy);
-  const inBody = dy > -0.25 && dy < 0.41 && Math.abs(dx) < hw;
-
-  if (inBody) {
-    const shade = clamp((dy + 0.25) / 0.66);
-    rgb = mixColor([255, 150, 172], [176, 18, 58], shade);
-
-    // shoulder highlight
-    if (rotEllipse(cu - 0.36, cv - 0.3, 0.11, 0.07, -0.4) < 1) {
-      rgb = mixColor(rgb, [255, 235, 238], 0.45);
-    }
-
-    // seeds
-    const rows = [
-      { y: -0.15, xs: [-0.19, -0.065, 0.065, 0.19] },
-      { y: -0.05, xs: [-0.245, -0.08, 0.08, 0.245] },
-      { y: 0.06, xs: [-0.19, -0.065, 0.065, 0.19] },
-      { y: 0.17, xs: [-0.145, -0.05, 0.05, 0.145] },
-      { y: 0.27, xs: [-0.1, 0, 0.1] },
-      { y: 0.36, xs: [-0.05, 0.05] },
-    ];
-    for (const row of rows) {
-      for (const sx of row.xs) {
-        const px = bx + sx;
-        const py = by + row.y;
-        if (Math.abs(sx) > halfWidth(row.y) - 0.02) continue;
-        if (rotEllipse(cu - px, cv - py, 0.0115, 0.018, 0.25) < 1) rgb = [255, 238, 196];
-      }
-    }
-
-    // eyes
-    for (const ex of [-0.115, 0.115]) {
-      if (Math.hypot(cu - (bx + ex), cv - 0.42) < 0.036) rgb = [255, 255, 255];
-      if (Math.hypot(cu - (bx + ex), cv - 0.425) < 0.018) rgb = [72, 8, 29];
-      if (Math.hypot(cu - (bx + ex - 0.012), cv - 0.404) < 0.007) rgb = [255, 255, 255];
-    }
-
-    // cheeks
-    if (Math.hypot((cu - 0.365) / 1.6, cv - 0.5) < 0.028 || Math.hypot((cu - 0.635) / 1.6, cv - 0.5) < 0.028) {
-      rgb = mixColor(rgb, [255, 228, 236], 0.55);
-    }
-
-    // smile
-    if (cv > 0.505) {
-      const ed = ((cu - 0.5) / 0.048) ** 2 + ((cv - 0.5) / 0.038) ** 2;
-      if (ed > 0.55 && ed < 1.7) rgb = [91, 10, 30];
-    }
-  }
-
-  /* ---------------- leafy crown ---------------- */
-  const crownY = 0.21;
-  const crownAngles = [-1.25, -0.82, -0.38, 0, 0.38, 0.82, 1.25];
-  for (const a of crownAngles) {
-    const lx = 0.5 + Math.sin(a) * 0.075;
-    const ly = crownY - Math.cos(a) * 0.085;
-    if (rotEllipse(cu - lx, cv - ly, 0.036, 0.082, -a) < 1) {
-      rgb = mixColor([52, 211, 153], [21, 128, 61], clamp((cv - 0.1) / 0.3));
-    }
-  }
-
-  // stem
-  if (rotEllipse(cu - 0.5, cv - 0.135, 0.014, 0.045, 0) < 1) rgb = [22, 101, 52];
-
-  // floating bubbles
-  if (Math.hypot(u - 0.17, v - 0.2) < 0.04) rgb = mixColor(rgb, [255, 255, 255], 0.35);
-  if (Math.hypot(u - 0.85, v - 0.74) < 0.03) rgb = mixColor(rgb, [255, 255, 255], 0.3);
-  if (Math.hypot(u - 0.8, v - 0.17) < 0.019) rgb = mixColor(rgb, [255, 255, 255], 0.3);
-
-  return rgb;
-}
-
-function render(size, scale) {
-  const rgba = Buffer.alloc(size * size * 4);
-  const SS = 3;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      for (let sy = 0; sy < SS; sy++) {
-        for (let sx = 0; sx < SS; sx++) {
-          const u = (x + (sx + 0.5) / SS) / size;
-          const v = (y + (sy + 0.5) / SS) / size;
-          const c = colorAt(u, v, scale);
-          r += c[0];
-          g += c[1];
-          b += c[2];
-        }
-      }
-      const n = SS * SS;
-      const i = (y * size + x) * 4;
-      rgba[i] = Math.round(r / n);
-      rgba[i + 1] = Math.round(g / n);
-      rgba[i + 2] = Math.round(b / n);
-      rgba[i + 3] = 255;
-    }
-  }
-  return rgba;
-}
-
-function make(name, size, scale) {
-  const png = encodePNG(size, size, render(size, scale));
-  writeFileSync(resolve(OUT, name), png);
-  console.log(`  ${name}  ${(png.length / 1024).toFixed(1)} KB`);
-}
-
-console.log("Generating icons:");
-make("icon-192.png", 192, 0.98);
-make("icon-512.png", 512, 0.98);
-make("icon-384.png", 384, 0.98);
-make("maskable-512.png", 512, 0.76);
-make("apple-touch-icon.png", 180, 1.0);
-make("favicon-32.png", 32, 1.0);
-console.log("Done.");
+// Windows/browser fallback: 32px PNG wrapped in a 1-image .ico container.
+const png32 = await render(smallIcon, 32);
+const ico = Buffer.alloc(22);
+ico.writeUInt16LE(0, 0);
+ico.writeUInt16LE(1, 2);
+ico.writeUInt16LE(1, 4);
+ico.writeUInt8(32, 6);
+ico.writeUInt8(32, 7);
+ico.writeUInt8(0, 8);
+ico.writeUInt8(0, 9);
+ico.writeUInt16LE(1, 10);
+ico.writeUInt16LE(32, 12);
+ico.writeUInt32LE(png32.length, 14);
+ico.writeUInt32LE(22, 18);
+await writeFile(join(root, "public", "favicon.ico"), Buffer.concat([ico, png32]));
+console.log(`  ${"favicon.ico".padEnd(22)} ${((ico.length + png32.length) / 1024).toFixed(1)} KB`);

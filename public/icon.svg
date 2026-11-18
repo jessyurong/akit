@@ -1,76 +1,109 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7c3aed"/>
-      <stop offset="0.55" stop-color="#6366f1"/>
-      <stop offset="1" stop-color="#38bdf8"/>
-    </linearGradient>
-    <linearGradient id="berry" x1="0.2" y1="0" x2="0.85" y2="1">
-      <stop offset="0" stop-color="#ff9db1"/>
-      <stop offset="0.45" stop-color="#f43f5e"/>
-      <stop offset="1" stop-color="#be123c"/>
-    </linearGradient>
-    <linearGradient id="leaf" x1="0" y1="0" x2="0.4" y2="1">
-      <stop offset="0" stop-color="#86efac"/>
-      <stop offset="0.6" stop-color="#22c55e"/>
-      <stop offset="1" stop-color="#15803d"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.55">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#8b5cf6"/>
+    <stop offset="0.55" stop-color="#6366f1"/>
+    <stop offset="1" stop-color="#38bdf8"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="0.5" cy="0.42" r="0.5">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.26"/>
+    <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="berry" x1="0.22" y1="0.05" x2="0.82" y2="1">
+    <stop offset="0" stop-color="#ff9daa"/>
+    <stop offset="0.42" stop-color="#f43f52"/>
+    <stop offset="1" stop-color="#c2183a"/>
+  </linearGradient>
+  <linearGradient id="leaf" x1="0.2" y1="0" x2="0.6" y2="1">
+    <stop offset="0" stop-color="#b4f8c8"/>
+    <stop offset="0.45" stop-color="#3ecb5e"/>
+    <stop offset="1" stop-color="#187a3c"/>
+  </linearGradient>
+  <linearGradient id="stem" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#5fe08c"/>
+    <stop offset="1" stop-color="#187a3c"/>
+  </linearGradient>
+  <radialGradient id="iris" cx="0.38" cy="0.32" r="0.85">
+    <stop offset="0" stop-color="#6d95e4"/>
+    <stop offset="0.55" stop-color="#1b2c5e"/>
+    <stop offset="1" stop-color="#0a1128"/>
+  </radialGradient>
+  <radialGradient id="blush" cx="0.5" cy="0.5" r="0.55">
+    <stop offset="0" stop-color="#ffc6d4" stop-opacity="0.95"/>
+    <stop offset="0.6" stop-color="#ff8aa6" stop-opacity="0.75"/>
+    <stop offset="1" stop-color="#ff8aa6" stop-opacity="0"/>
+  </radialGradient></defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <circle cx="256" cy="238" r="200" fill="url(#glow)"/>
+  
+  <clipPath id="bodyClip"><path d="M256 456
+  C 214 432 176 398 160 354
+  C 146 316 143 276 150 246
+  C 158 210 196 190 256 190
+  C 316 190 354 210 362 246
+  C 369 276 366 316 352 354
+  C 336 398 298 432 256 456 Z"/></clipPath>
 
-  <!-- berry body: round shoulders, pointed tip -->
-  <path d="M256 430c-74-34-118-96-118-160 0-46 34-82 78-88 14-2 26-2 40 0 44 6 78 42 78 88 0 64-44 126-78 160Z" fill="url(#berry)"/>
+  <ellipse cx="256" cy="262" rx="206" ry="200" fill="url(#glow)"/>
 
-  <!-- seeds -->
-  <g fill="#ffefc4" opacity="0.9">
-    <ellipse cx="176" cy="236" rx="4" ry="6" transform="rotate(-18 176 236)"/>
-    <ellipse cx="222" cy="214" rx="4" ry="6" transform="rotate(-10 222 214)"/>
-    <ellipse cx="268" cy="212" rx="4" ry="6" transform="rotate(8 268 212)"/>
-    <ellipse cx="318" cy="230" rx="4" ry="6" transform="rotate(18 318 230)"/>
-    <ellipse cx="196" cy="286" rx="4" ry="6" transform="rotate(-14 196 286)"/>
-    <ellipse cx="300" cy="290" rx="4" ry="6" transform="rotate(14 300 290)"/>
-    <ellipse cx="232" cy="322" rx="4" ry="6" transform="rotate(-6 232 322)"/>
-    <ellipse cx="278" cy="330" rx="4" ry="6" transform="rotate(6 278 330)"/>
-    <ellipse cx="256" cy="386" rx="4" ry="6"/>
+  <!-- stem -->
+  <rect x="247" y="92" width="17" height="86" rx="8.5"
+        transform="rotate(-8 255.5 135)" fill="url(#stem)" stroke="#0f5c33" stroke-width="5"/>
+
+  <!-- leafy crown, fanned out -->
+  <ellipse cx="256" cy="156" rx="22" ry="50" transform="rotate(0 256 156)"
+     fill="url(#leaf)" stroke="#0f5c33" stroke-width="6"/>
+  <ellipse cx="234" cy="160" rx="20" ry="46" transform="rotate(-31 234 160)"
+     fill="url(#leaf)" stroke="#0f5c33" stroke-width="6"/>
+  <ellipse cx="278" cy="160" rx="20" ry="46" transform="rotate(31 278 160)"
+     fill="url(#leaf)" stroke="#0f5c33" stroke-width="6"/>
+  <ellipse cx="217" cy="177" rx="18" ry="42" transform="rotate(-62 217 177)"
+     fill="url(#leaf)" stroke="#0f5c33" stroke-width="6"/>
+  <ellipse cx="295" cy="177" rx="18" ry="42" transform="rotate(62 295 177)"
+     fill="url(#leaf)" stroke="#0f5c33" stroke-width="6"/>
+
+  <!-- berry body -->
+  <path d="M256 456
+  C 214 432 176 398 160 354
+  C 146 316 143 276 150 246
+  C 158 210 196 190 256 190
+  C 316 190 354 210 362 246
+  C 369 276 366 316 352 354
+  C 336 398 298 432 256 456 Z" fill="url(#berry)" stroke="#96122c" stroke-width="10" stroke-linejoin="round"/>
+
+  <g clip-path="url(#bodyClip)">
+    <!-- shoulder shine -->
+    <ellipse cx="203" cy="228" rx="34" ry="19" transform="rotate(-28 203 228)"
+             fill="#ffffff" opacity="0.38"/>
+
+    <ellipse cx="196" cy="232" rx="5.4" ry="8.2" transform="rotate(-14 196 232)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="256" cy="222" rx="5.4" ry="8.2" transform="rotate(0 256 222)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="316" cy="232" rx="5.4" ry="8.2" transform="rotate(14 316 232)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="166" cy="292" rx="5.4" ry="8.2" transform="rotate(-20 166 292)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="346" cy="292" rx="5.4" ry="8.2" transform="rotate(20 346 292)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="180" cy="356" rx="5.4" ry="8.2" transform="rotate(-16 180 356)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="332" cy="356" rx="5.4" ry="8.2" transform="rotate(16 332 356)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="210" cy="396" rx="5.4" ry="8.2" transform="rotate(-10 210 396)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="302" cy="396" rx="5.4" ry="8.2" transform="rotate(10 302 396)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="238" cy="424" rx="5.4" ry="8.2" transform="rotate(-6 238 424)" fill="#ffd45e" opacity="0.96"/>
+<ellipse cx="274" cy="428" rx="5.4" ry="8.2" transform="rotate(6 274 428)" fill="#ffd45e" opacity="0.96"/>
+
+    <!-- blush -->
+    <ellipse cx="168" cy="330" rx="34" ry="18" fill="url(#blush)"/>
+    <ellipse cx="344" cy="330" rx="34" ry="18" fill="url(#blush)"/>
   </g>
-
-  <!-- crown leaves -->
-  <g fill="url(#leaf)">
-    <ellipse cx="256" cy="150" rx="17" ry="44"/>
-    <ellipse cx="218" cy="160" rx="17" ry="40" transform="rotate(-38 218 160)"/>
-    <ellipse cx="294" cy="160" rx="17" ry="40" transform="rotate(38 294 160)"/>
-    <ellipse cx="184" cy="186" rx="16" ry="34" transform="rotate(-66 184 186)"/>
-    <ellipse cx="328" cy="186" rx="16" ry="34" transform="rotate(66 328 186)"/>
-  </g>
-  <rect x="250" y="104" width="12" height="36" rx="6" fill="#166534"/>
 
   <!-- eyes -->
-  <ellipse cx="220" cy="256" rx="17" ry="21" fill="#ffffff"/>
-  <ellipse cx="292" cy="256" rx="17" ry="21" fill="#ffffff"/>
-  <ellipse cx="220" cy="258" rx="9" ry="12" fill="#48081d"/>
-  <ellipse cx="292" cy="258" rx="9" ry="12" fill="#48081d"/>
-  <circle cx="216" cy="251" r="4" fill="#ffffff"/>
-  <circle cx="288" cy="251" r="4" fill="#ffffff"/>
-
-  <!-- cheeks -->
-  <ellipse cx="184" cy="292" rx="20" ry="11" fill="#ffe4ec" opacity="0.6"/>
-  <ellipse cx="328" cy="292" rx="20" ry="11" fill="#ffe4ec" opacity="0.6"/>
+  <ellipse cx="206" cy="290" rx="31" ry="34" fill="#ffffff" stroke="#8d0f28" stroke-width="4"/>
+  <ellipse cx="306" cy="290" rx="31" ry="34" fill="#ffffff" stroke="#8d0f28" stroke-width="4"/>
+  <ellipse cx="207" cy="292" rx="24.5" ry="27.5" fill="url(#iris)"/>
+  <ellipse cx="307" cy="292" rx="24.5" ry="27.5" fill="url(#iris)"/>
+  <circle cx="197" cy="279" r="9.5" fill="#ffffff"/>
+  <circle cx="297" cy="279" r="9.5" fill="#ffffff"/>
+  <circle cx="216" cy="305" r="4.6" fill="#ffffff" opacity="0.9"/>
+  <circle cx="316" cy="305" r="4.6" fill="#ffffff" opacity="0.9"/>
 
   <!-- smile -->
-  <path d="M236 288c8 14 32 14 40 0" stroke="#5b0a1e" stroke-width="9" stroke-linecap="round" fill="none"/>
+  <path d="M231 336 Q 256 364 281 336" fill="none" stroke="#4a0a1c"
+        stroke-width="9" stroke-linecap="round"/>
 
-  <!-- highlight -->
-  <ellipse cx="196" cy="196" rx="28" ry="16" fill="#ffffff" opacity="0.4" transform="rotate(-28 196 196)"/>
-
-  <!-- bubbles -->
-  <circle cx="92" cy="104" r="14" fill="#ffffff" opacity="0.3"/>
-  <circle cx="424" cy="88" r="9" fill="#ffffff" opacity="0.35"/>
-  <circle cx="436" cy="380" r="16" fill="#ffffff" opacity="0.22"/>
-  <circle cx="86" cy="372" r="8" fill="#ffffff" opacity="0.3"/>
 </svg>

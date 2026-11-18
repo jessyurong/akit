@@ -124,7 +124,7 @@ export default function Home() {
           ↻ Reset everything
         </button>
         <p className="footerText">
-          💝 made for Leah Kate · @ by jesy_yuri · install it for offline calm.
+          made for Leah Kate · @ by jesy_yuri
         </p>
       </footer>
     </main>

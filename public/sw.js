@@ -1,5 +1,5 @@
 /* Anti-Stress Playground service worker — hand written, no build step. */
-const VERSION = "v1.1.0";
+const VERSION = "v1.2.0";
 const CORE = `sr-core-${VERSION}`;
 const ASSETS = `sr-assets-${VERSION}`;
 const MEDIA = `sr-media-${VERSION}`;
@@ -12,6 +12,7 @@ const PRECACHE = [
   "/icons/icon-512.png",
   "/icons/maskable-512.png",
   "/icons/apple-touch-icon.png",
+  "/icons/favicon-32.png",
   "/audio/island-song.mp3",
   "/audio/calm.wav",
   "/audio/focus.wav",
