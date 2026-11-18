@@ -1452,13 +1452,20 @@ header {
 .mochiWrap {
   position: fixed;
   left: 22px;
-  bottom: 20px;
+  bottom: calc(74px + env(safe-area-inset-bottom));
   z-index: 46;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
   pointer-events: none;
+  transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(var(--mochi-scale, 1));
+  transform-origin: bottom left;
+  transition: transform 0.22s ease-out;
+}
+
+.mochiWrap[data-dragging="true"] {
+  transition: none;
 }
 
 .mochiWrap > * {
@@ -1477,6 +1484,16 @@ header {
   border: 0;
   padding-inline: 0;
   transform-origin: bottom center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.mochi[data-dragging="true"] {
+  cursor: grabbing;
+  animation: none;
 }
 
 .mochi[data-dancing="true"] {
@@ -1860,13 +1877,20 @@ header {
 
 .musicDock {
   position: fixed;
-  right: 20px;
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 50;
-  width: 340px;
-  max-width: calc(100vw - 24px);
+  width: auto;
+  max-width: none;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  pointer-events: none;
+}
+
+.musicDock > * {
+  pointer-events: auto;
 }
 
 .musicPanel {
@@ -1874,11 +1898,12 @@ header {
   flex-direction: column;
   gap: 10px;
   width: 100%;
-  margin-bottom: 8px;
-  padding: 14px;
-  border-radius: 20px;
+  margin-bottom: 0;
+  padding: 14px max(16px, calc((100% - 560px) / 2)) 16px;
+  border-radius: 20px 20px 0 0;
   background: var(--panel);
   border: 1px solid var(--panel-border);
+  border-bottom: 0;
   box-shadow: var(--shadow-hover);
   backdrop-filter: var(--glass);
   animation: panelUp 0.22s ease;
@@ -2081,17 +2106,19 @@ header {
 .musicPill {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 7px;
-  border-radius: 18px;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px max(12px, calc((100% - 600px) / 2)) calc(8px + env(safe-area-inset-bottom));
+  border-radius: 18px 18px 0 0;
   background: var(--panel);
-  border: 1px solid var(--panel-border);
-  box-shadow: var(--shadow);
+  border-top: 1px solid var(--panel-border);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.28);
   backdrop-filter: var(--glass);
 }
 
 .pillMain {
-  flex: 1;
+  flex: 0 1 560px;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -2620,14 +2647,6 @@ footer {
     font-size: 0.75rem;
   }
 
-  .musicDock {
-    left: 10px;
-    right: 10px;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    width: auto;
-    max-width: none;
-  }
-
   .musicPanel {
     max-height: 58dvh;
     overflow-y: auto;
@@ -2635,9 +2654,8 @@ footer {
 
   .mochiWrap {
     left: 8px;
-    bottom: calc(84px + env(safe-area-inset-bottom));
-    transform: scale(0.66);
-    transform-origin: bottom left;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    --mochi-scale: 0.66;
   }
 
   .mochiBubble {
@@ -2737,15 +2755,12 @@ footer {
   }
 
   .mochiWrap {
-    transform: scale(0.7);
-    bottom: 8px;
+    --mochi-scale: 0.7;
+    bottom: calc(64px + env(safe-area-inset-bottom));
   }
 
-  .musicDock {
-    width: 300px;
-    left: auto;
-    right: 10px;
-    bottom: 8px;
+  .musicPanel {
+    max-height: 46dvh;
   }
 }
 
