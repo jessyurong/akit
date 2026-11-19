@@ -6,6 +6,7 @@ import { useMusic } from "../lib/music/player";
 import { sfx, haptics } from "../lib/audio/sfx";
 import { Icon } from "./icons";
 import { speak, stopSpeaking, warmUpVoices } from "../lib/speech";
+import MochiMic from "./MochiMic";
 
 // Always the first thing Mochi says on a fresh visit.
 const GREETINGS = [
@@ -482,6 +483,31 @@ export default function Mochi() {
 
   const beat = `${Math.min(1.4, Math.max(0.5, 60 / track.bpm))}s`;
 
+  // A real answer from the voice chat: stay on screen long enough to read,
+  // and let her speak it with the same mouth movement as a poke.
+  const bubbleMsFor = (text: string) => Math.min(14_000, Math.max(5_200, text.length * 90));
+
+  const onVoiceReply = (text: string) => {
+    const ms = bubbleMsFor(text);
+    showBubble(text, ms);
+    addScore(2, "mochi");
+    if (!settings.soundOn) return;
+
+    const started = speak(text, {
+      onStart: () => {
+        setTalking(true);
+        if (talkTimer.current) window.clearTimeout(talkTimer.current);
+        talkTimer.current = window.setTimeout(stopTalking, Math.max(3600, ms));
+      },
+      onEnd: stopTalking,
+    });
+    if (started) setTalking(true);
+  };
+
+  const onVoiceStatus = (text: string) => {
+    showBubble(text, 4500);
+  };
+
   return (
     <div
       className="mochiWrap"
@@ -541,6 +567,7 @@ export default function Mochi() {
           <span className="mochiShine" />
         </span>
       </button>
+      <MochiMic onReply={onVoiceReply} onStatus={onVoiceStatus} />
       {hearts.map((h) => (
         <span
           key={h.id}

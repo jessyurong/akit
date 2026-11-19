@@ -15,6 +15,7 @@ export type IconName =
   | "install"
   | "volume"
   | "mute"
+  | "mic"
   | "vibrate"
   | "theme"
   | "camera"
@@ -97,6 +98,13 @@ const ICONS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M4 10v4h3l4.2 3.4V6.6L7 10z" />
       <path d="M16 9.8l4.4 4.4M20.4 9.8L16 14.2" />
+    </>
+  ),
+  mic: (
+    <>
+      <rect x="9" y="2.8" width="6" height="10.4" rx="3" />
+      <path d="M5.4 11.4a6.6 6.6 0 0013.2 0" />
+      <path d="M12 18v3" />
     </>
   ),
   vibrate: (

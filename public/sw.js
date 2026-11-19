@@ -1,5 +1,5 @@
 /* Anti-Stress Playground service worker — hand written, no build step. */
-const VERSION = "v1.5.0";
+const VERSION = "v1.6.0";
 const CORE = `sr-core-${VERSION}`;
 const ASSETS = `sr-assets-${VERSION}`;
 const MEDIA = `sr-media-${VERSION}`;

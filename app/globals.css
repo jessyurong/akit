@@ -3975,4 +3975,106 @@ svg.icon {
   font-weight: 600;
 }
 
+/* ==========================================================================
+   Mochi voice — hold-to-talk mic
+   ========================================================================== */
+
+.mochiMic {
+  position: absolute;
+  left: 104px;
+  bottom: 52px;
+  z-index: 3;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--accent-text);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: var(--glass);
+  backdrop-filter: var(--glass);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    transform 0.16s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mochiMic .icon {
+  position: relative;
+  z-index: 1;
+}
+
+.mochiMic:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.mochiMic[data-phase="listening"] {
+  background: var(--accent);
+  color: #fff;
+  transform: scale(1.08);
+  box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
+}
+
+.mochiMic[data-phase="thinking"] {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.mochiMic[data-phase="thinking"] .icon {
+  animation: micThink 1.6s linear infinite;
+}
+
+.mochiMicRing {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mochiMic[data-phase="listening"] .mochiMicRing {
+  animation: micPulse 1.15s ease-out infinite;
+}
+
+@keyframes micPulse {
+  0% { opacity: 0.8; transform: scale(0.94); }
+  70% { opacity: 0; transform: scale(1.35); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+@keyframes micThink {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 760px) {
+  .mochiMic {
+    left: 100px;
+    bottom: 44px;
+    width: 58px;
+    height: 58px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mochiMic[data-phase="listening"] .mochiMicRing,
+  .mochiMic[data-phase="thinking"] .icon {
+    animation: none;
+  }
+  .mochiMic[data-phase="listening"] {
+    transform: none;
+  }
+}
+
+
 
