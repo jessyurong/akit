@@ -35,6 +35,37 @@ const LINES = [
   "Tiny break? I'll guard your tabs.",
   "I'm ninety percent water and thriving. Hydrate with me?",
   "One tap at a time. That's the whole plan.",
+  // Little life-care reminders — the kind a best friend nags you about.
+  "Have you eaten yet? Please don't get hungry.",
+  "Eat something warm today, even if it's small.",
+  "Drink water. Right now. I'll wait.",
+  "Love yourself a little louder today.",
+  "Unclench your jaw. Drop your shoulders. There you go.",
+  "You don't have to earn your rest.",
+  "Sleep early tonight, okay? Your body keeps score.",
+  "Text someone you miss. It'll make both your days.",
+  "Go stand in the sun for two minutes. Free medicine.",
+  "If today feels heavy, do the small version.",
+  "You're allowed to change your mind.",
+  "Stretch your back, Leah Kate. You've been sitting a while.",
+  "It's okay to say no. Really.",
+  "Your feelings make sense. All of them.",
+  "One small thing done is still a win.",
+  "Take your meds if it's that time. I'm keeping track of nothing, but still.",
+  "Put your phone down for a minute. Yes, I know. Hypocrite strawberry.",
+  "You are not behind. You're just on your own timeline.",
+];
+
+// Grumpy lines for when someone poke-spams the strawberry.
+const ANGRY_LINES = [
+  "Hey! Easy! I'm a strawberry, not a punching bag.",
+  "Ow ow ow — one tap at a time, please!",
+  "Too fast! I'm getting dizzy!",
+  "Keep poking me and I'll go sour, I swear.",
+  "Excuse me? I have feelings and seeds.",
+  "That's it. I'm telling Leah Kate.",
+  "Gentle hands! I bruise, remember?",
+  "Hmph. Poke me again and see what happens.",
 ];
 
 const TIPS = [
@@ -46,6 +77,9 @@ const TIPS = [
 
 // Cute reactions Mochi cycles through on tap. Never the same one twice in a row.
 const REACTIONS = ["boing", "squish", "wiggle", "love", "blink"] as const;
+
+// Little things she does on her own when nobody is poking her.
+const IDLE_REACTIONS = ["blink", "blink", "gaze", "yawn", "stretch"] as const;
 
 const POS_KEY = "sr:mochi-pos";
 
@@ -81,6 +115,11 @@ export default function Mochi() {
   const recentLines = useRef<string[]>([]);
   const [talking, setTalking] = useState(false);
   const talkTimer = useRef<number | null>(null);
+  const [idle, setIdle] = useState<string | null>(null);
+  const [annoyed, setAnnoyed] = useState(false);
+  const annoyedRef = useRef(false);
+  const annoyedTimer = useRef<number | null>(null);
+  const tapTimes = useRef<number[]>([]);
 
   const showBubble = (text: string, ms = 5200) => {
     setBubble(text);
@@ -108,6 +147,8 @@ export default function Mochi() {
       if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
       if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
       if (talkTimer.current) window.clearTimeout(talkTimer.current);
+      if (annoyedTimer.current) window.clearTimeout(annoyedTimer.current);
+      annoyedRef.current = false;
       stopSpeaking();
     };
   }, []);
@@ -223,6 +264,38 @@ export default function Mochi() {
     return () => window.clearInterval(id);
   }, []);
 
+  // Idle life of her own: blinks, looks around, yawns, stretches.
+  // Restarts whenever she talks or is being dragged, so it only happens when quiet.
+  useEffect(() => {
+    if (dragging || annoyed) return;
+    let alive = true;
+    let timer = 0;
+
+    const step = (delay = 2400 + Math.random() * 3200) => {
+      timer = window.setTimeout(() => {
+        if (!alive) return;
+        if (document.hidden) {
+          step(2000);
+          return;
+        }
+        const kind = IDLE_REACTIONS[Math.floor(Math.random() * IDLE_REACTIONS.length)];
+        setIdle(kind);
+        const hold = kind === "blink" ? 180 : kind === "gaze" ? 1500 : kind === "yawn" ? 1350 : 1000;
+        window.setTimeout(() => {
+          if (alive) setIdle((cur) => (cur === kind ? null : cur));
+        }, hold);
+        step();
+      }, delay);
+    };
+
+    step(1600 + Math.random() * 2000);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+      setIdle(null);
+    };
+  }, [bubble, dragging, annoyed]);
+
   // Pupils follow the cursor on devices that actually have one.
   useEffect(() => {
     const el = bodyRef.current;
@@ -259,11 +332,49 @@ export default function Mochi() {
       suppressClick.current = false;
       return;
     }
+    // She's still grumpy — let her cool off instead of stacking more pokes.
+    if (annoyedRef.current) return;
     const next = pokes + 1;
     setPokes(next);
     addScore(1, "mochi");
     sfx.chime(next % 5 === 0 ? 1046.5 : 783.99, 0.8, 0.1);
     haptics.pulse(14);
+
+    // Poke-spam detection: four taps inside ~2 seconds and she gets grumpy.
+    const now = Date.now();
+    tapTimes.current = tapTimes.current.filter((t) => now - t < 2200);
+    tapTimes.current.push(now);
+    if (tapTimes.current.length >= 4 && next > 1) {
+      tapTimes.current = [];
+      if (annoyedTimer.current) window.clearTimeout(annoyedTimer.current);
+      annoyedRef.current = true;
+      setAnnoyed(true);
+      annoyedTimer.current = window.setTimeout(() => {
+        annoyedRef.current = false;
+        setAnnoyed(false);
+      }, 1900);
+      setIdle(null);
+      if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
+      setReaction(null);
+      sfx.huff();
+
+      const grumpy = ANGRY_LINES[Math.floor(Math.random() * ANGRY_LINES.length)];
+      showBubble(grumpy, 3800);
+      if (settings.soundOn) {
+        const started = speak(grumpy, {
+          pitch: 0.92,
+          rate: 1.06,
+          onStart: () => {
+            setTalking(true);
+            if (talkTimer.current) window.clearTimeout(talkTimer.current);
+            talkTimer.current = window.setTimeout(stopTalking, 3400);
+          },
+          onEnd: stopTalking,
+        });
+        if (started) setTalking(true);
+      }
+      return;
+    }
 
     // First tap is always a greeting; after that, something she hasn't just said.
     const line =
@@ -332,6 +443,8 @@ export default function Mochi() {
         data-dancing={playing && !calm}
         data-talking={talking ? "true" : undefined}
         data-react={reaction ?? undefined}
+        data-idle={idle ?? undefined}
+        data-annoyed={annoyed ? "true" : undefined}
         data-dragging={dragging ? "true" : undefined}
         style={{ ["--beat" as string]: beat } as React.CSSProperties}
       >
@@ -347,16 +460,19 @@ export default function Mochi() {
           </span>
           <span className="mochiSeeds" />
           <span className="mochiFace">
-            <span className="mochiEye">
+            <span className="mochiBrow left" />
+            <span className="mochiBrow right" />
+            <span className="mochiEye left">
               <span className="mochiPupil" />
             </span>
-            <span className="mochiEye">
+            <span className="mochiEye right">
               <span className="mochiPupil" />
             </span>
             <span className="mochiCheek left" />
             <span className="mochiCheek right" />
             <span className="mochiMouth" />
           </span>
+          <span className="mochiSteam" aria-hidden="true" />
           <span className="mochiShine" />
         </span>
       </button>

@@ -1922,8 +1922,8 @@ header {
   overflow: hidden;
 }
 
-.mochiEye:first-of-type { left: 4px; }
-.mochiEye:nth-of-type(2) { right: 4px; }
+.mochiEye.left { left: 4px; }
+.mochiEye.right { right: 4px; }
 
 .mochiPupil {
   position: relative;
@@ -3747,4 +3747,189 @@ svg.icon {
   box-shadow: var(--shadow), 0 0 0 2px rgba(244, 63, 94, 0.18);
   border-color: rgba(244, 63, 94, 0.38);
 }
+
+/* ==========================================================================
+   Mochi idle life — blinks, gazes, yawns, stretches on her own
+   ========================================================================== */
+
+/* Blink: eyes become happy little lines for a split second. */
+.mochi[data-idle="blink"] .mochiEye {
+  top: 15px;
+  height: 3px;
+  border-radius: 3px;
+  background: #4a0a1c;
+}
+
+.mochi[data-idle="blink"] .mochiPupil { opacity: 0; }
+
+/* Gaze: pupils wander left, then right, then back. */
+.mochi[data-idle="gaze"] .mochiPupil {
+  animation: mochiGaze 1.5s ease-in-out;
+}
+
+@keyframes mochiGaze {
+  0% { transform: translate(0, 0); }
+  28% { transform: translate(4px, -1px); }
+  62% { transform: translate(-4px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Yawn: eyes squeeze shut, mouth opens wide, body sways sleepily. */
+.mochi[data-idle="yawn"] .mochiEye {
+  top: 15px;
+  height: 4px;
+  border-radius: 4px;
+  background: #4a0a1c;
+}
+
+.mochi[data-idle="yawn"] .mochiPupil { opacity: 0; }
+
+.mochi[data-idle="yawn"] .mochiMouth {
+  width: 15px;
+  height: 15px;
+  top: 25px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 72%, #ff9db2 0 34%, #5b0a1e 38%);
+  animation: mochiYawnMouth 1.3s ease-in-out;
+}
+
+.mochi[data-idle="yawn"] .mochiBody {
+  animation: mochiYawnSway 1.3s ease-in-out;
+}
+
+@keyframes mochiYawnMouth {
+  0%, 100% { transform: translateX(-50%) scale(0.4); opacity: 0.7; }
+  35%, 70% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+@keyframes mochiYawnSway {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  35% { transform: translateY(2px) rotate(-2deg); }
+  70% { transform: translateY(2px) rotate(1.5deg); }
+}
+
+/* Stretch: a slow tall squish, like a cat waking up. */
+.mochi[data-idle="stretch"] .mochiBody {
+  animation: mochiStretch 1s ease-in-out;
+}
+
+@keyframes mochiStretch {
+  0%, 100% { transform: scale(1, 1); }
+  30% { transform: scale(1.1, 0.9); }
+  65% { transform: scale(0.94, 1.12) translateY(-3px); }
+}
+
+/* ==========================================================================
+   Mochi annoyed — poke-spammed strawberry
+   ========================================================================== */
+
+.mochiBrow {
+  position: absolute;
+  top: 0;
+  width: 15px;
+  height: 3.5px;
+  border-radius: 3px;
+  background: #4a0a1c;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.mochiBrow.left { left: 5px; transform: rotate(16deg); }
+.mochiBrow.right { right: 5px; transform: rotate(-16deg); }
+
+.mochiSteam {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.mochiSteam::before,
+.mochiSteam::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 72%);
+  animation: mochiSteam 1s ease-out infinite;
+}
+
+.mochiSteam::before { left: 2px; }
+.mochiSteam::after { right: 2px; animation-delay: 0.45s; }
+
+@keyframes mochiSteam {
+  0% { opacity: 0; transform: translateY(4px) scale(0.6); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-9px) scale(1.3); }
+}
+
+.mochi[data-annoyed="true"] .mochiBrow { opacity: 1; }
+.mochi[data-annoyed="true"] .mochiSteam { opacity: 1; }
+
+.mochi[data-annoyed="true"] .mochiEye {
+  top: 10px;
+  height: 15px;
+}
+
+.mochi[data-annoyed="true"] .mochiPupil {
+  transform: translate(var(--ex, 0px), var(--ey, 0px)) scale(0.86);
+}
+
+/* Frown — a grumpy little upside-down smile. */
+.mochi[data-annoyed="true"] .mochiMouth {
+  width: 15px;
+  height: 7px;
+  top: 33px;
+  background: transparent;
+  border: 0;
+  border-top: 2.5px solid #4a0a1c;
+  border-radius: 10px 10px 0 0;
+}
+
+.mochi[data-annoyed="true"] .mochiCheek {
+  opacity: 1;
+  filter: blur(1.5px);
+}
+
+.mochi[data-annoyed="true"] .mochiBody {
+  animation: mochiAngry 0.22s ease-in-out infinite alternate;
+}
+
+.mochi[data-annoyed="true"] .mochiCrown {
+  animation: mochiAngryCrown 0.22s ease-in-out infinite alternate;
+}
+
+@keyframes mochiAngry {
+  0% { transform: rotate(-2.4deg) translateX(-1px); }
+  100% { transform: rotate(2.4deg) translateX(1px); }
+}
+
+@keyframes mochiAngryCrown {
+  0% { transform: translateX(-50%) rotate(-3deg); }
+  100% { transform: translateX(-50%) rotate(3deg); }
+}
+
+/* Angry speech bubble gets a warning tint. */
+.mochiWrap:has(.mochi[data-annoyed="true"]) .mochiBubble {
+  border-color: rgba(244, 63, 94, 0.6);
+  box-shadow: var(--shadow), 0 0 0 2px rgba(244, 63, 94, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mochi[data-annoyed="true"] .mochiBody,
+  .mochi[data-annoyed="true"] .mochiCrown,
+  .mochiSteam::before,
+  .mochiSteam::after {
+    animation: none;
+  }
+}
+
 

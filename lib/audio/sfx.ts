@@ -119,6 +119,17 @@ export const sfx = {
     haptics.pulse(14);
   },
 
+  /** A tiny indignant "hmph" for when Mochi gets poke-spammed. */
+  huff() {
+    const ctx = soundCtx();
+    const out = audio.busForSfx();
+    if (!ctx || !out) return;
+    const { o, g } = osc(ctx, "triangle", 260, 0, 0.16, 0.14, 0.01);
+    o.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.15);
+    g.connect(out);
+    haptics.pulse([12, 30, 12]);
+  },
+
   chime(freq = 528, duration = 1.2, peak = 0.22) {
     const ctx = soundCtx();
     const out = audio.busForSfx();

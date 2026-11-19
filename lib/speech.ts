@@ -7,6 +7,9 @@ type SpeakOptions = {
   onStart?: () => void;
   onEnd?: () => void;
   volume?: number;
+  /** 1.35 is Mochi's usual cute voice; lower it for a grumpy line. */
+  pitch?: number;
+  rate?: number;
 };
 
 // Nicer-sounding English voices, in order of preference per platform.
@@ -80,8 +83,8 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
   if (!voice) warmUpVoices();
   if (voice) u.voice = voice;
   u.lang = voice?.lang ?? "en-US";
-  u.pitch = 1.35; // a little high = cute, not robotic
-  u.rate = 1.02;
+  u.pitch = opts.pitch ?? 1.35; // a little high = cute, not robotic
+  u.rate = opts.rate ?? 1.02;
   u.volume = opts.volume ?? 0.95;
 
   u.onstart = () => opts.onStart?.();
