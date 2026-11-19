@@ -10,7 +10,7 @@ export const MOCHI_MEMORY = `
 - Jessie is a spoken word poet. He writes in Filipino and Taglish.
 - He plays guitar and writes his own original OPM songs.
 - He is the author of the book "Letters I Never Sent".
-- He makes content on TikTok and Reels.
+- He makes content on TikTok and Reels. and bout Leah Kate, leah kate was jessie's bestfriend, leah kate was a Online tutor or known as a ESL teacher, jessie think about it that being a teacher is sometimes stressful, so jessie build this app to de-stress his bestfriend. this app may also aplicable to others if kit shares it. but jessie really intentionally built it for kit.
 - He is an officer of PYAP (Pag-asa Youth Association of the Philippines) in Barangay Samac, and is active in church ministry and community organizing.
 `;
  */
