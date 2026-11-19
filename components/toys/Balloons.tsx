@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Tile } from "../ui";
-import { Icon } from "../icons";
 import { useGame } from "../../lib/game";
 import { sfx } from "../../lib/audio/sfx";
 
@@ -13,6 +12,18 @@ interface Balloon {
 }
 
 const COLORS = ["#f43f5e", "#38bdf8", "#a855f7", "#eab308", "#22c55e", "#ec4899", "#14b8a6"];
+
+/** Pre-computed burst directions so no trigonometry runs during render. */
+const SHARDS = Array.from({ length: 9 }, (_, i) => {
+  const angle = (i / 9) * Math.PI * 2 + 0.35;
+  return {
+    dx: `${(Math.cos(angle) * 34).toFixed(1)}px`,
+    dy: `${(Math.sin(angle) * 30).toFixed(1)}px`,
+    rot: `${Math.round((i * 67) % 360)}deg`,
+    scale: (0.65 + (i % 3) * 0.22).toFixed(2),
+    delay: `${(i % 4) * 9}ms`,
+  };
+});
 
 function makeBalloons(): Balloon[] {
   return Array.from({ length: 5 }, (_, i) => ({
@@ -32,7 +43,7 @@ export default function Balloons() {
 
   const pop = (id: number) => {
     setBalloons((prev) => prev.map((b) => (b.id === id ? { ...b, popped: true } : b)));
-    sfx.pop(0.8);
+    sfx.pop(0.8 + Math.random() * 0.25);
     addScore(2, "balloons");
     say("Pop! The balloon had no regrets.");
   };
@@ -62,12 +73,40 @@ export default function Balloons() {
           <button
             key={b.id}
             className={`balloonItem ${b.popped ? "balloonPopped" : ""}`}
-            style={{ color: b.color }}
+            style={{ "--balloon": b.color } as React.CSSProperties}
             onClick={() => !b.popped && pop(b.id)}
             disabled={b.popped}
             aria-label={b.popped ? "Popped balloon" : "Pop balloon"}
           >
-            {b.popped ? <Icon name="sparkle" size={24} /> : <Icon name="balloon" size={46} />}
+            <span className="balloonBody">
+              <span className="balloonGloss" />
+              <span className="balloonKnot" />
+              <svg className="balloonString" viewBox="0 0 18 54" aria-hidden="true">
+                <path d="M9 0c6 8-5 13 0 21s-4 12 1 20-2 8 1 13" />
+              </svg>
+            </span>
+
+            {b.popped ? (
+              <span className="balloonBurst" aria-hidden="true">
+                <span className="burstRing" />
+                <span className="burstFlash" />
+                {SHARDS.map((s, i) => (
+                  <span
+                    key={i}
+                    className="burstShard"
+                    style={
+                      {
+                        "--dx": s.dx,
+                        "--dy": s.dy,
+                        "--rot": s.rot,
+                        "--scale": s.scale,
+                        "--delay": s.delay,
+                      } as React.CSSProperties
+                    }
+                  />
+                ))}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>

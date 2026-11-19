@@ -62,10 +62,26 @@ export const sfx = {
     const ctx = soundCtx();
     const out = audio.busForSfx();
     if (!ctx || !out) return;
-    const start = (0.5 + Math.random() * 0.16) * 1000 * pitch;
-    const { o, g } = osc(ctx, "sine", start, 0, 0.09, 0.3, 0.003);
-    o.frequency.exponentialRampToValueAtTime(90 * pitch, ctx.currentTime + 0.09);
+    const t = ctx.currentTime;
+
+    // Round, bouncy "plop" body.
+    const { o, g } = osc(ctx, "sine", 560 * pitch, 0, 0.12, 0.3, 0.003);
+    o.frequency.setValueAtTime(560 * pitch, t);
+    o.frequency.exponentialRampToValueAtTime(190 * pitch, t + 0.05);
+    o.frequency.exponentialRampToValueAtTime(98 * pitch, t + 0.125);
     g.connect(out);
+
+    // Tiny upward chirp keeps it cute instead of dull.
+    const { o: o2, g: g2 } = osc(ctx, "triangle", 820 * pitch, 0.01, 0.075, 0.11, 0.004);
+    o2.frequency.setValueAtTime(820 * pitch, t + 0.01);
+    o2.frequency.exponentialRampToValueAtTime(1380 * pitch, t + 0.03);
+    o2.frequency.exponentialRampToValueAtTime(430 * pitch, t + 0.09);
+    g2.connect(out);
+
+    // Rubber snap of the latex.
+    const { g: g3 } = osc(ctx, "square", 2500, 0, 0.017, 0.05, 0.001);
+    g3.connect(out);
+
     haptics.pulse(8);
   },
 
