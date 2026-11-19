@@ -14,37 +14,29 @@ const PALETTES: Record<
   ResolvedTheme,
   { bg: [string, string]; ink: string; sub: string; accent: string; accent2: string; pill: string }
 > = {
-  night: {
-    bg: ["#0b1022", "#241046"],
-    ink: "#f8fafc",
-    sub: "#a5b4fc",
-    accent: "#a855f7",
-    accent2: "#38bdf8",
+  midnight: {
+    bg: ["#0d1020", "#241a4d"],
+    ink: "#ece9ff",
+    sub: "#b7b2d9",
+    accent: "#8b7cf6",
+    accent2: "#6ee7d7",
     pill: "rgba(255,255,255,0.10)",
   },
-  dusk: {
-    bg: ["#241a3d", "#4c1d53"],
-    ink: "#fdf4ff",
-    sub: "#e9d5ff",
-    accent: "#f0abfc",
-    accent2: "#67e8f9",
-    pill: "rgba(255,255,255,0.12)",
+  matcha: {
+    bg: ["#f7f4e9", "#e8efd8"],
+    ink: "#2e3a28",
+    sub: "#6b785e",
+    accent: "#5b8c51",
+    accent2: "#a8842c",
+    pill: "rgba(47,58,42,0.06)",
   },
-  day: {
-    bg: ["#eef2ff", "#ffffff"],
-    ink: "#0f172a",
-    sub: "#475569",
-    accent: "#7c3aed",
-    accent2: "#0284c7",
-    pill: "rgba(15,23,42,0.06)",
-  },
-  dawn: {
-    bg: ["#fff1e6", "#ffe4ec"],
-    ink: "#3b1d2e",
-    sub: "#7c5468",
-    accent: "#e11d48",
-    accent2: "#d97706",
-    pill: "rgba(59,29,46,0.06)",
+  sakura: {
+    bg: ["#fff2f2", "#ffe1ea"],
+    ink: "#43263a",
+    sub: "#8a6379",
+    accent: "#e8607f",
+    accent2: "#b07bd6",
+    pill: "rgba(74,32,48,0.06)",
   },
 };
 

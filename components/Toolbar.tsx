@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useGame } from "../lib/game";
 import { sfx, haptics } from "../lib/audio/sfx";
-import { THEME_ICON, THEME_LABELS, type ThemeName } from "../lib/theme";
+import { THEME_ICON, THEME_LABELS, THEME_ORDER, type ThemeName } from "../lib/theme";
 import { Icon } from "./icons";
 import { Modal } from "./ui";
 import {
@@ -14,7 +14,7 @@ import {
   promptInstall,
 } from "../lib/pwa";
 
-const THEMES: ThemeName[] = ["auto", "dawn", "day", "dusk", "night"];
+const THEMES: ThemeName[] = THEME_ORDER;
 
 function InstallButton() {
   const { pushToast, setShareOpen } = useGame();
@@ -154,6 +154,7 @@ export default function Toolbar() {
                   }}
                 >
                   <span><Icon name={THEME_ICON[t]} size={16} /></span>
+                  <span className="themeSwatch" data-theme-name={t} aria-hidden="true" />
                   {THEME_LABELS[t]}
                 </button>
               ))}

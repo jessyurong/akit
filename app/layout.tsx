@@ -31,8 +31,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0e1a" },
-    { media: "(prefers-color-scheme: light)", color: "#f3f5ff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1020" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f2e6" },
   ],
 };
 
@@ -40,19 +40,22 @@ const themeScript = `(function(){try{
   var raw = localStorage.getItem("sr:v1");
   var saved = raw ? JSON.parse(raw) : {};
   var theme = (saved && saved.settings && saved.settings.theme) || "auto";
+  if (theme === "night" || theme === "dusk") theme = "midnight";
+  else if (theme === "dawn" || theme === "day") theme = "matcha";
+  else if (theme !== "matcha" && theme !== "midnight" && theme !== "sakura") theme = "auto";
   if (theme === "auto") {
     var h = new Date().getHours();
-    theme = h < 6 ? "night" : h < 11 ? "dawn" : h < 17 ? "day" : h < 20 ? "dusk" : "night";
+    theme = h < 6 ? "midnight" : h < 17 ? "matcha" : h < 20 ? "sakura" : "midnight";
   }
   var root = document.documentElement;
   root.dataset.theme = theme;
-  root.style.colorScheme = theme === "day" || theme === "dawn" ? "light" : "dark";
-  var colors = { dawn:"#fff6ef", day:"#f3f5ff", dusk:"#241a3d", night:"#0a0e1a" };
+  root.style.colorScheme = theme === "midnight" ? "dark" : "light";
+  var colors = { matcha:"#f5f2e6", midnight:"#0d1020", sakura:"#fff1f0" };
   var meta = document.createElement("meta");
   meta.name = "theme-color";
-  meta.content = colors[theme] || "#0a0e1a";
+  meta.content = colors[theme] || "#0d1020";
   document.head.appendChild(meta);
-}catch(e){document.documentElement.dataset.theme="night";}})();`;
+}catch(e){document.documentElement.dataset.theme="midnight";}})();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

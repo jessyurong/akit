@@ -16,6 +16,7 @@ import { loadState, saveState, clamp } from "./storage";
 import { DEFAULT_TRACK_ID } from "./music/tracks";
 import type { IconName } from "../components/icons";
 import {
+  normalizeTheme,
   resolveTheme,
   THEME_COLORS,
   type ResolvedTheme,
@@ -134,7 +135,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [calm, setCalm] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("night");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("midnight");
   const [resetToken, setResetToken] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const toastId = useRef(0);
@@ -142,7 +143,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   /* --- hydrate once from localStorage (avoids SSR mismatch) --- */
   useEffect(() => {
     const saved = loadState({ settings: DEFAULT_SETTINGS, stats: DEFAULT_STATS });
-    setSettings(saved.settings);
+    setSettings({
+      ...saved.settings,
+      theme: normalizeTheme(saved.settings.theme),
+    });
     setStats({
       ...saved.stats,
       visits: (saved.stats.visits || 0) + 1,
@@ -164,6 +168,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const next = resolveTheme(settings.theme);
       setResolvedTheme(next);
       document.documentElement.dataset.theme = next;
+      document.documentElement.style.colorScheme = next === "midnight" ? "dark" : "light";
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute("content", THEME_COLORS[next]);
     };
