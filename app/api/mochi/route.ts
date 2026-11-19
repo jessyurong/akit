@@ -175,9 +175,8 @@ async function trial(
 }
 
 /**
- * GET /api/mochi — setup check. Open it in the browser to see whether the key
- * is visible to the deployment, whether Gemini accepts it, and how fast each
- * model variant answers.
+ * GET /api/mochi — lightweight setup check. Add ?probe=1 to run a single,
+ * rate-limited Gemini call (avoids burning quota on every page load).
  */
 export async function GET(request: Request) {
   const ip =
@@ -187,47 +186,39 @@ export async function GET(request: Request) {
 
   const key = process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
-  if (!key) return NextResponse.json({ configured: false, model });
-  if (probeLimited(ip)) {
-    return NextResponse.json({ configured: true, error: "Probe limit reached. Wait a minute." }, { status: 429 });
-  }
+  const probe = new URL(request.url).searchParams.get("probe") === "1";
 
-  let modelStatus: number | string = 0;
-  let modelError: string | undefined;
-  try {
-    const meta = await fetch(`${API_BASE}/models/${encodeURIComponent(model)}`, {
-      headers: { "x-goog-api-key": key },
-      signal: AbortSignal.timeout(10_000),
-      cache: "no-store",
-    });
-    modelStatus = meta.status;
-    if (!meta.ok) modelError = (await meta.text()).slice(0, 240);
-  } catch {
-    modelStatus = "network-error";
-  }
-
-  const tests = await Promise.all([
-    trial("gemini-3.8-flash + LOW", key, "gemini-3.8-flash", { thinkingConfig: { thinkingLevel: "LOW" } }),
-    trial("gemini-3.6-flash + MINIMAL", key, "gemini-3.6-flash", { thinkingConfig: { thinkingLevel: "MINIMAL" } }),
-    trial("gemini-flash-lite-latest", key, "gemini-flash-lite-latest", {}),
-    trial("gemini-flash-latest", key, "gemini-flash-latest", {}),
-  ]);
-
-  return NextResponse.json(
-    {
-      configured: true,
-      key: {
+  const keyInfo = key
+    ? {
         length: key.length,
         prefix: key.slice(0, 3),
         hasWhitespace: key !== key.trim(),
         looksLikeAIza: /^AIza[0-9A-Za-z_-]{20,}$/.test(key.trim()),
         looksLikeAQ: /^AQ\.[0-9A-Za-z._-]{10,}$/.test(key.trim()),
-      },
-      model,
-      modelStatus,
-      modelError,
-      tests,
-    },
+      }
+    : undefined;
+
+  if (!key) {
+    return NextResponse.json({ configured: false, model }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (!probe) {
+    return NextResponse.json(
+      { configured: true, model, key: keyInfo },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  if (probeLimited(ip)) {
+    return NextResponse.json(
+      { configured: true, model, key: keyInfo, error: "Probe limit reached. Wait a minute." },
+      { status: 429, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const test = await trial(model, key, model, {});
+  return NextResponse.json(
+    { configured: true, model, key: keyInfo, test },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -263,14 +254,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Mochi's voice isn't configured yet." }, { status: 500 });
   }
 
-  // Fast first, then heavier fallbacks if the model is busy.
-  const chain: { model: string; thinking: string | null }[] = [
-    { model: process.env.GEMINI_MODEL || "gemini-flash-lite-latest", thinking: null },
-    { model: "gemini-3.6-flash", thinking: "MINIMAL" },
-    { model: "gemini-3.8-flash", thinking: "LOW" },
-  ];
+  // Flash-Lite only: 500 RPD free tier vs 20 RPD for 3.6/3.8 fallbacks.
+  const model = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 
-  const makeBody = (thinking: string | null, recent: { heard: string; reply: string }[]) => ({
+  const makeBody = (recent: { heard: string; reply: string }[]) => ({
     systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
     contents: [
       ...recent.flatMap((turn) => [
@@ -297,49 +284,35 @@ export async function POST(request: Request) {
         },
         required: ["reply"],
       },
-      // Mochi answers in 1-3 sentences; deep thinking just adds latency.
-      ...(thinking ? { thinkingConfig: { thinkingLevel: thinking } } : {}),
     },
   });
 
   try {
-    let upstream: Response | null = null;
-    const chainStarted = Date.now();
+    const started = Date.now();
+    const res = await genOnce(key, model, makeBody(history), 8_000);
+    const ms = Date.now() - started;
 
-    for (const step of chain) {
-      const stepStarted = Date.now();
-      try {
-        let res = await genOnce(key, step.model, makeBody(step.thinking, history), 12_000);
-
-        // Some models reject thinkingLevel — retry plainly if that was the complaint.
-        if (!res.ok && res.status === 400 && step.thinking) {
-          const detail = await res.clone().text().catch(() => "");
-          if (/thinking/i.test(detail)) {
-            res = await genOnce(key, step.model, makeBody(null, history), 12_000);
-          }
-        }
-
-        if (res.ok) {
-          console.info(`Mochi voice: ${step.model} replied 200 in ${Date.now() - stepStarted}ms`);
-          upstream = res;
-          break;
-        }
-
-        const detail = await res.text().catch(() => "");
-        console.error(
-          `Mochi voice: ${step.model} replied ${res.status} in ${Date.now() - stepStarted}ms: ${detail.slice(0, 300)}`,
-        );
-      } catch (error) {
-        console.error(`Mochi voice: ${step.model} failed after ${Date.now() - stepStarted}ms`, error);
-      }
-    }
-    console.info(`Mochi voice: model chain finished in ${Date.now() - chainStarted}ms`);
-
-    if (!upstream) {
-      return NextResponse.json({ error: "Mochi couldn't think of a reply." }, { status: 502 });
+    if (res.status === 429) {
+      const detail = await res.text().catch(() => "");
+      console.error(`Mochi voice: ${model} replied 429 in ${ms}ms: ${detail.slice(0, 300)}`);
+      console.info(`Mochi voice: model call finished in ${ms}ms`);
+      return NextResponse.json(
+        { error: "Mochi needs a tiny rest. Try again in a minute." },
+        { status: 429 },
+      );
     }
 
-    const payload = (await upstream.json()) as GeminiPayload;
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error(`Mochi voice: ${model} replied ${res.status} in ${ms}ms: ${detail.slice(0, 300)}`);
+      console.info(`Mochi voice: model call finished in ${ms}ms`);
+      return NextResponse.json({ error: "Mochi couldn't think of a reply right now." }, { status: 502 });
+    }
+
+    console.info(`Mochi voice: ${model} replied 200 in ${ms}ms`);
+    console.info(`Mochi voice: model call finished in ${ms}ms`);
+
+    const payload = (await res.json()) as GeminiPayload;
     const result = extractReply(payload);
     if (!result) {
       return NextResponse.json({ error: "Mochi didn't catch that one." }, { status: 502 });
@@ -348,6 +321,6 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Mochi voice: request failed", error);
-    return NextResponse.json({ error: "Mochi couldn't hear that one." }, { status: 502 });
+    return NextResponse.json({ error: "Mochi couldn't reach Gemini right now." }, { status: 502 });
   }
 }
