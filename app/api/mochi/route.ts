@@ -122,7 +122,7 @@ async function trial(
       model,
       {
         contents: [{ role: "user", parts: [{ text: "Reply with the single word: ok" }] }],
-        generationConfig: { maxOutputTokens: 24, temperature: 0, ...genConfig },
+        generationConfig: { maxOutputTokens: 128, temperature: 0, ...genConfig },
       },
       12_000,
     );
@@ -158,7 +158,7 @@ export async function GET(request: Request) {
     "local";
 
   const key = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
   if (!key) return NextResponse.json({ configured: false, model });
   if (probeLimited(ip)) {
     return NextResponse.json({ configured: true, error: "Probe limit reached. Wait a minute." }, { status: 429 });
@@ -178,12 +178,11 @@ export async function GET(request: Request) {
     modelStatus = "network-error";
   }
 
-  const noThink = { thinkingConfig: { thinkingBudget: 0 } };
   const tests = await Promise.all([
-    trial(`${model} + no-think`, key, model, noThink),
-    trial(`${model} + default thinking`, key, model, {}),
-    trial("gemini-2.5-flash + no-think", key, "gemini-2.5-flash", noThink),
-    trial("gemini-flash-lite-latest + no-think", key, "gemini-flash-lite-latest", noThink),
+    trial("gemini-3.8-flash + LOW", key, "gemini-3.8-flash", { thinkingConfig: { thinkingLevel: "LOW" } }),
+    trial("gemini-3.6-flash + MINIMAL", key, "gemini-3.6-flash", { thinkingConfig: { thinkingLevel: "MINIMAL" } }),
+    trial("gemini-flash-lite-latest", key, "gemini-flash-lite-latest", {}),
+    trial("gemini-flash-latest", key, "gemini-flash-latest", {}),
   ]);
 
   return NextResponse.json(
@@ -235,9 +234,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Mochi's voice isn't configured yet." }, { status: 500 });
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  // Fast first, then cheaper fallbacks if the model is busy or retired.
+  const chain: { model: string; thinking: string | null }[] = [
+    { model: process.env.GEMINI_MODEL || "gemini-3.8-flash", thinking: "LOW" },
+    { model: "gemini-3.6-flash", thinking: "MINIMAL" },
+    { model: "gemini-flash-lite-latest", thinking: null },
+  ];
 
-  const makeBody = (noThink: boolean) => ({
+  const makeBody = (thinking: string | null) => ({
     systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
     contents: [
       {
@@ -250,7 +254,7 @@ export async function POST(request: Request) {
     ],
     generationConfig: {
       temperature: 0.9,
-      maxOutputTokens: 320,
+      maxOutputTokens: 1024,
       responseMimeType: "application/json",
       responseSchema: {
         type: "OBJECT",
@@ -261,24 +265,38 @@ export async function POST(request: Request) {
         required: ["reply"],
       },
       // Mochi answers in 1-3 sentences; deep thinking just adds latency.
-      ...(noThink ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      ...(thinking ? { thinkingConfig: { thinkingLevel: thinking } } : {}),
     },
   });
 
   try {
-    let upstream = await genOnce(key, model, makeBody(true), 30_000);
+    let upstream: Response | null = null;
 
-    // Some models reject thinkingBudget — retry plainly if that was the complaint.
-    if (upstream.status === 400) {
-      const detail = await upstream.clone().text().catch(() => "");
-      if (/thinking/i.test(detail)) {
-        upstream = await genOnce(key, model, makeBody(false), 30_000);
+    for (const step of chain) {
+      try {
+        let res = await genOnce(key, step.model, makeBody(step.thinking), 12_000);
+
+        // Some models reject thinkingLevel — retry plainly if that was the complaint.
+        if (!res.ok && res.status === 400 && step.thinking) {
+          const detail = await res.clone().text().catch(() => "");
+          if (/thinking/i.test(detail)) {
+            res = await genOnce(key, step.model, makeBody(null), 12_000);
+          }
+        }
+
+        if (res.ok) {
+          upstream = res;
+          break;
+        }
+
+        const detail = await res.text().catch(() => "");
+        console.error(`Mochi voice: ${step.model} replied ${res.status}: ${detail.slice(0, 300)}`);
+      } catch (error) {
+        console.error(`Mochi voice: ${step.model} failed`, error);
       }
     }
 
-    if (!upstream.ok) {
-      const detail = await upstream.text().catch(() => "");
-      console.error(`Mochi voice: Gemini replied ${upstream.status}: ${detail.slice(0, 400)}`);
+    if (!upstream) {
       return NextResponse.json({ error: "Mochi couldn't think of a reply." }, { status: 502 });
     }
 
