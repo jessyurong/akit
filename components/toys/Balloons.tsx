@@ -13,6 +13,19 @@ interface Balloon {
 
 const COLORS = ["#f43f5e", "#38bdf8", "#a855f7", "#eab308", "#22c55e", "#ec4899", "#14b8a6"];
 
+/* Pre-computed shades: older iOS Safari has no color-mix(), which used to
+   leave the balloon bodies with no background at all. */
+function shade(hex: string, amount: number) {
+  const n = parseInt(hex.slice(1), 16);
+  const mix = (c: number) => Math.round(amount >= 0 ? c + (255 - c) * amount : c * (1 + amount));
+  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+}
+
+function tint(hex: string, alpha: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 /** Pre-computed burst directions so no trigonometry runs during render. */
 const SHARDS = Array.from({ length: 9 }, (_, i) => {
   const angle = (i / 9) * Math.PI * 2 + 0.35;
@@ -73,7 +86,15 @@ export default function Balloons() {
           <button
             key={b.id}
             className={`balloonItem ${b.popped ? "balloonPopped" : ""}`}
-            style={{ "--balloon": b.color } as React.CSSProperties}
+            style={
+              {
+                "--balloon": b.color,
+                "--balloon-light": shade(b.color, 0.45),
+                "--balloon-dark": shade(b.color, -0.38),
+                "--balloon-string": shade(b.color, -0.2),
+                "--balloon-shadow": tint(b.color, 0.3),
+              } as React.CSSProperties
+            }
             onClick={() => !b.popped && pop(b.id)}
             disabled={b.popped}
             aria-label={b.popped ? "Popped balloon" : "Pop balloon"}
