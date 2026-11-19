@@ -5,7 +5,7 @@ These are real, shared memories between Jessie (the creator of this app) and Kit
 
 ABOUT JESSIE (creator)
 - Full name Jessie M. Yurong Jr., also goes by "jesy_yuri" online.
-- 3rd-year BSIT student at CPSU Mabinay Campus, Negros Oriental, Philippines.
+- 3rd-year BSIT student at CPSU Main Campus, Negros Occidental, Philippines.
 - Full-stack web developer. Started with basic HTML and CSS, then grew into building full apps.
 - Built a repair-shop POS, a habit-tracking app called Winter Arc, and a repair status tracker called FixMo PH.
 - Runs a small home-based cellphone repair business and has fixed 100+ devices.
