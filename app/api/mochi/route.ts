@@ -287,40 +287,79 @@ export async function POST(request: Request) {
     },
   });
 
-  try {
+  const maxAttempts = 2;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const started = Date.now();
-    const res = await genOnce(key, model, makeBody(history), 8_000);
-    const ms = Date.now() - started;
+    try {
+      const res = await genOnce(key, model, makeBody(history), 10_000);
+      const ms = Date.now() - started;
 
-    if (res.status === 429) {
-      const detail = await res.text().catch(() => "");
-      console.error(`Mochi voice: ${model} replied 429 in ${ms}ms: ${detail.slice(0, 300)}`);
-      console.info(`Mochi voice: model call finished in ${ms}ms`);
-      return NextResponse.json(
-        { error: "Mochi needs a tiny rest. Try again in a minute." },
-        { status: 429 },
+      if (res.status === 429) {
+        const detail = await res.text().catch(() => "");
+        console.error(
+          `Mochi voice: ${model} replied 429 in ${ms}ms (attempt ${attempt}/${maxAttempts}): ${detail.slice(0, 300)}`,
+        );
+        return NextResponse.json(
+          { error: "Mochi needs a tiny rest. Try again in a minute." },
+          { status: 429 },
+        );
+      }
+
+      if (res.status === 503) {
+        const detail = await res.text().catch(() => "");
+        console.error(
+          `Mochi voice: ${model} replied 503 in ${ms}ms (attempt ${attempt}/${maxAttempts}): ${detail.slice(0, 300)}`,
+        );
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          continue;
+        }
+        return NextResponse.json(
+          { error: "Mochi's brain is a bit busy right now. Try again in a moment." },
+          { status: 502 },
+        );
+      }
+
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        console.error(
+          `Mochi voice: ${model} replied ${res.status} in ${ms}ms (attempt ${attempt}/${maxAttempts}): ${detail.slice(0, 300)}`,
+        );
+        return NextResponse.json({ error: "Mochi couldn't think of a reply right now." }, { status: 502 });
+      }
+
+      console.info(`Mochi voice: ${model} replied 200 in ${ms}ms (attempt ${attempt}/${maxAttempts})`);
+
+      const payload = (await res.json()) as GeminiPayload;
+      const result = extractReply(payload);
+      if (!result) {
+        return NextResponse.json({ error: "Mochi didn't catch that one." }, { status: 502 });
+      }
+
+      return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
+    } catch (error) {
+      const ms = Date.now() - started;
+      const timedOut =
+        error instanceof Error &&
+        (error.name === "TimeoutError" || (error as { code?: unknown }).code === 23);
+      const kind = timedOut ? "timed out" : "failed";
+      console.error(
+        `Mochi voice: ${model} ${kind} in ${ms}ms (attempt ${attempt}/${maxAttempts})`,
+        error,
       );
+
+      if (timedOut && attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        continue;
+      }
+      if (timedOut) {
+        return NextResponse.json({ error: "Mochi took too long to answer. Try again?" }, { status: 502 });
+      }
+
+      return NextResponse.json({ error: "Mochi couldn't reach Gemini right now." }, { status: 502 });
     }
-
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.error(`Mochi voice: ${model} replied ${res.status} in ${ms}ms: ${detail.slice(0, 300)}`);
-      console.info(`Mochi voice: model call finished in ${ms}ms`);
-      return NextResponse.json({ error: "Mochi couldn't think of a reply right now." }, { status: 502 });
-    }
-
-    console.info(`Mochi voice: ${model} replied 200 in ${ms}ms`);
-    console.info(`Mochi voice: model call finished in ${ms}ms`);
-
-    const payload = (await res.json()) as GeminiPayload;
-    const result = extractReply(payload);
-    if (!result) {
-      return NextResponse.json({ error: "Mochi didn't catch that one." }, { status: 502 });
-    }
-
-    return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
-  } catch (error) {
-    console.error("Mochi voice: request failed", error);
-    return NextResponse.json({ error: "Mochi couldn't reach Gemini right now." }, { status: 502 });
   }
+
+  return NextResponse.json({ error: "Mochi couldn't think of a reply right now." }, { status: 502 });
 }
