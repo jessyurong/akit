@@ -5,14 +5,36 @@ import { useGame } from "../lib/game";
 import { useMusic } from "../lib/music/player";
 import { sfx, haptics } from "../lib/audio/sfx";
 import { Icon } from "./icons";
+import { speak, stopSpeaking, warmUpVoices } from "../lib/speech";
 
+// Always the first thing Mochi says on a fresh visit.
+const GREETINGS = [
+  "Hi Leah Kate!",
+  "Oh, you're back!",
+  "Hello hello, Leah Kate.",
+  "Leah Kate! I was hoping you'd come by.",
+];
+
+// Short, spoken-style lines. Written to be read aloud, not just read.
 const LINES = [
-  "Mochi believes in you. Statistically speaking.",
-  "Hydrate? Mochi is 90% water and thriving.",
-  "You've done enough for now. Seriously.",
-  "Mochi saw that pop. Extremely impressive.",
-  "Tiny break? Mochi will guard your tabs.",
-  "Remember: rest is productive. Mochi naps 14 hours a day.",
+  "How are you today?",
+  "How's your heart today, Leah Kate?",
+  "Have you eaten yet?",
+  "Did you drink water? Be honest.",
+  "That tickles!",
+  "Again! Again!",
+  "Eep! Careful, I bruise like a strawberry.",
+  "I'm a strawberry, not a stress ball. But I'll allow it.",
+  "You poked me. I poked back. We're even.",
+  "You're doing better than you think.",
+  "Rest is allowed.",
+  "Mochi is proud of you.",
+  "Whatever's heavy today, you don't have to carry it alone.",
+  "Kumain ka na ba?",
+  "Ingat ka ha.",
+  "Tiny break? I'll guard your tabs.",
+  "I'm ninety percent water and thriving. Hydrate with me?",
+  "One tap at a time. That's the whole plan.",
 ];
 
 const TIPS = [
@@ -38,7 +60,7 @@ type DragState = {
 };
 
 export default function Mochi() {
-  const { mood, moodLabel, happiness, calm, addScore, say } = useGame();
+  const { mood, moodLabel, happiness, calm, addScore, settings } = useGame();
   const { playing, track } = useMusic();
   const bodyRef = useRef<HTMLSpanElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -56,6 +78,9 @@ export default function Mochi() {
   const heartId = useRef(0);
   const lastReaction = useRef(-1);
   const reactionTimer = useRef<number | null>(null);
+  const recentLines = useRef<string[]>([]);
+  const [talking, setTalking] = useState(false);
+  const talkTimer = useRef<number | null>(null);
 
   const showBubble = (text: string, ms = 5200) => {
     setBubble(text);
@@ -63,10 +88,27 @@ export default function Mochi() {
     bubbleTimer.current = window.setTimeout(() => setBubble(null), ms);
   };
 
+  // Never repeat a line within the last four taps.
+  const pickLine = () => {
+    const fresh = LINES.filter((line) => !recentLines.current.includes(line));
+    const pool = fresh.length ? fresh : LINES;
+    const line = pool[Math.floor(Math.random() * pool.length)];
+    recentLines.current = [...recentLines.current, line].slice(-4);
+    return line;
+  };
+
+  const stopTalking = () => {
+    if (talkTimer.current) window.clearTimeout(talkTimer.current);
+    setTalking(false);
+  };
+
   useEffect(() => {
+    warmUpVoices();
     return () => {
       if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
       if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
+      if (talkTimer.current) window.clearTimeout(talkTimer.current);
+      stopSpeaking();
     };
   }, []);
 
@@ -222,8 +264,24 @@ export default function Mochi() {
     addScore(1, "mochi");
     sfx.chime(next % 5 === 0 ? 1046.5 : 783.99, 0.8, 0.1);
     haptics.pulse(14);
-    showBubble(LINES[Math.floor(Math.random() * LINES.length)], 4200);
-    say("Mochi appreciates the attention. Mood +1.");
+
+    // First tap is always a greeting; after that, something she hasn't just said.
+    const line =
+      next === 1 ? GREETINGS[Math.floor(Math.random() * GREETINGS.length)] : pickLine();
+    showBubble(line, 5200);
+
+    if (settings.soundOn) {
+      const started = speak(line, {
+        onStart: () => {
+          setTalking(true);
+          if (talkTimer.current) window.clearTimeout(talkTimer.current);
+          talkTimer.current = window.setTimeout(stopTalking, 3600);
+        },
+        onEnd: stopTalking,
+      });
+      // Some browsers fire onstart late — move the mouth right away.
+      if (started) setTalking(true);
+    }
 
     const id = ++heartId.current;
     setHearts((prev) => [
@@ -267,11 +325,12 @@ export default function Mochi() {
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        aria-label={`Mochi the strawberry, ${moodLabel}, ${happiness} percent happy. Tap for a reaction, or drag her anywhere.`}
-        title="Drag me anywhere · tap me for a reaction"
+        aria-label={`Mochi the strawberry, ${moodLabel}, ${happiness} percent happy. Tap and she'll talk to you, or drag her anywhere.`}
+        title="Drag me anywhere · tap me and I'll say something"
         data-mood={mood}
         data-calm={calm}
         data-dancing={playing && !calm}
+        data-talking={talking ? "true" : undefined}
         data-react={reaction ?? undefined}
         data-dragging={dragging ? "true" : undefined}
         style={{ ["--beat" as string]: beat } as React.CSSProperties}

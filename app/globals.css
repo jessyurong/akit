@@ -3750,3 +3750,23 @@ svg.icon {
   100% { opacity: 0; transform: scale(1.9); }
 }
 
+/* ==========================================================================
+   Mochi talking
+   ========================================================================== */
+
+/* Little mouth flapping while her voice plays. */
+.mochi[data-talking="true"] .mochiMouth {
+  animation: mochiTalk 0.26s ease-in-out infinite alternate;
+}
+
+@keyframes mochiTalk {
+  0% { transform: translateX(-50%) scaleY(1); }
+  100% { transform: translateX(-50%) scaleY(0.32); }
+}
+
+/* The bubble gets a soft glow while she is speaking. */
+.mochiWrap:has(.mochi[data-talking="true"]) .mochiBubble {
+  box-shadow: var(--shadow), 0 0 0 2px rgba(244, 63, 94, 0.18);
+  border-color: rgba(244, 63, 94, 0.38);
+}
+
