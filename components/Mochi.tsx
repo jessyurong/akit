@@ -6,7 +6,7 @@ import { useMusic } from "../lib/music/player";
 import { sfx, haptics } from "../lib/audio/sfx";
 import { Icon } from "./icons";
 import { speak, stopSpeaking, warmUpVoices } from "../lib/speech";
-import MochiMic from "./MochiMic";
+import { useMochiVoice } from "../lib/use-mochi-voice";
 
 // Always the first thing Mochi says on a fresh visit.
 const GREETINGS = [
@@ -106,6 +106,8 @@ const REACTIONS = ["boing", "squish", "wiggle", "love", "blink"] as const;
 const IDLE_REACTIONS = ["blink", "blink", "gaze", "yawn", "stretch"] as const;
 
 const POS_KEY = "sr:mochi-pos";
+// A press this long turns a tap into a voice note.
+const HOLD_MS = 300;
 
 type DragState = {
   id: number;
@@ -147,6 +149,7 @@ export default function Mochi() {
   const [offense, setOffense] = useState(0);
   const offenseRef = useRef(0);
   const lastOffenseAt = useRef(0);
+  const holdTimer = useRef<number | null>(null);
 
   const showBubble = (text: string, ms = 5200) => {
     setBubble(text);
@@ -166,6 +169,44 @@ export default function Mochi() {
   const stopTalking = () => {
     if (talkTimer.current) window.clearTimeout(talkTimer.current);
     setTalking(false);
+  };
+
+  /* ---------------- Voice chat (hold Mochi to talk) ---------------- */
+
+  // A real answer from the voice chat: stay on screen long enough to read,
+  // and let her speak it with the same mouth movement as a poke.
+  const bubbleMsFor = (text: string) => Math.min(14_000, Math.max(5_200, text.length * 90));
+
+  const onVoiceReply = (text: string) => {
+    const ms = bubbleMsFor(text);
+    showBubble(text, ms);
+    addScore(2, "mochi");
+    if (!settings.soundOn) return;
+
+    const started = speak(text, {
+      onStart: () => {
+        setTalking(true);
+        if (talkTimer.current) window.clearTimeout(talkTimer.current);
+        talkTimer.current = window.setTimeout(stopTalking, Math.max(3600, ms));
+      },
+      onEnd: stopTalking,
+    });
+    if (started) setTalking(true);
+  };
+
+  const onVoiceStatus = (text: string) => {
+    showBubble(text, 4500);
+  };
+
+  const voice = useMochiVoice({ onReply: onVoiceReply, onStatus: onVoiceStatus });
+  const voiceRef = useRef(voice);
+  voiceRef.current = voice;
+
+  const clearHold = () => {
+    if (holdTimer.current !== null) {
+      window.clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
   };
 
   useEffect(() => {
@@ -192,8 +233,22 @@ export default function Mochi() {
       if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
       if (talkTimer.current) window.clearTimeout(talkTimer.current);
       if (annoyedTimer.current) window.clearTimeout(annoyedTimer.current);
+      if (holdTimer.current !== null) window.clearTimeout(holdTimer.current);
       annoyedRef.current = false;
       stopSpeaking();
+    };
+  }, []);
+
+  // Safety net: if the pointer is released off the pet, still send the note.
+  useEffect(() => {
+    const release = () => {
+      if (voiceRef.current.listening) voiceRef.current.finish();
+    };
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+    return () => {
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
     };
   }, []);
 
@@ -267,10 +322,35 @@ export default function Mochi() {
       scale: el.offsetWidth ? rect.width / el.offsetWidth : 1,
       moved: false,
     };
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* synthetic or already-released pointer — gestures still work */
+    }
+
+    // Arm hold-to-talk. A quick tap stays a poke, a moving finger stays a drag,
+    // and only a steady 300ms press turns into a voice note.
+    if (voice.supported && !annoyedRef.current && !voice.busy) {
+      clearHold();
+      holdTimer.current = window.setTimeout(() => {
+        holdTimer.current = null;
+        const d = drag.current;
+        if (!d || d.moved) return;
+        // Swallow the click that will follow this release.
+        suppressClick.current = true;
+        setIdle(null);
+        haptics.pulse(10);
+        voice.start();
+      }, HOLD_MS);
+    }
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    // While she is recording, the finger stays put; no dragging mid-note.
+    if (voice.listening) {
+      clearHold();
+      return;
+    }
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     const dx = e.clientX - d.sx;
@@ -278,6 +358,7 @@ export default function Mochi() {
     if (!d.moved) {
       if (Math.hypot(dx, dy) < 5) return;
       d.moved = true;
+      clearHold();
       setDragging(true);
     }
     const next = clampTo(d.ox + dx / d.scale, d.oy + dy / d.scale);
@@ -288,6 +369,15 @@ export default function Mochi() {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
+    clearHold();
+
+    // Releasing a hold sends the voice note instead of poking her.
+    if (voice.listening) {
+      suppressClick.current = true;
+      voice.finish();
+      return;
+    }
+
     if (!d.moved) return;
     setDragging(false);
     suppressClick.current = true;
@@ -297,6 +387,17 @@ export default function Mochi() {
       /* storage full or blocked — position just won't persist */
     }
     haptics.pulse(8);
+  };
+
+  const onPointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+    clearHold();
+    if (voice.listening) {
+      drag.current = null;
+      suppressClick.current = true;
+      voice.cancel();
+      return;
+    }
+    endDrag(e);
   };
 
   // Occasional unsolicited advice, because that is what friends do.
@@ -311,7 +412,7 @@ export default function Mochi() {
   // Idle life of her own: blinks, looks around, yawns, stretches.
   // Restarts whenever she talks or is being dragged, so it only happens when quiet.
   useEffect(() => {
-    if (dragging || annoyed) return;
+    if (dragging || annoyed || voice.busy) return;
     let alive = true;
     let timer = 0;
 
@@ -338,7 +439,7 @@ export default function Mochi() {
       window.clearTimeout(timer);
       setIdle(null);
     };
-  }, [bubble, dragging, annoyed]);
+  }, [bubble, dragging, annoyed, voice.busy]);
 
   // Pupils follow the cursor on devices that actually have one.
   useEffect(() => {
@@ -378,6 +479,8 @@ export default function Mochi() {
     }
     // She's still grumpy — let her cool off instead of stacking more pokes.
     if (annoyedRef.current) return;
+    // Mid voice note or waiting on a reply — this click isn't a poke.
+    if (voice.busy) return;
     const next = pokes + 1;
     setPokes(next);
     addScore(1, "mochi");
@@ -483,41 +586,29 @@ export default function Mochi() {
 
   const beat = `${Math.min(1.4, Math.max(0.5, 60 / track.bpm))}s`;
 
-  // A real answer from the voice chat: stay on screen long enough to read,
-  // and let her speak it with the same mouth movement as a poke.
-  const bubbleMsFor = (text: string) => Math.min(14_000, Math.max(5_200, text.length * 90));
-
-  const onVoiceReply = (text: string) => {
-    const ms = bubbleMsFor(text);
-    showBubble(text, ms);
-    addScore(2, "mochi");
-    if (!settings.soundOn) return;
-
-    const started = speak(text, {
-      onStart: () => {
-        setTalking(true);
-        if (talkTimer.current) window.clearTimeout(talkTimer.current);
-        talkTimer.current = window.setTimeout(stopTalking, Math.max(3600, ms));
-      },
-      onEnd: stopTalking,
-    });
-    if (started) setTalking(true);
-  };
-
-  const onVoiceStatus = (text: string) => {
-    showBubble(text, 4500);
-  };
-
   return (
     <div
       className="mochiWrap"
       ref={wrapRef}
       data-dragging={dragging ? "true" : undefined}
     >
-      {bubble && (
-        <div className="mochiBubble" role="status">
-          {bubble}
+      {voice.listening ? (
+        <div className="mochiListen" role="status" aria-live="polite">
+          <span className="mochiListenDot" aria-hidden="true" />
+          <span>Listening…</span>
+          <span className="mochiListenHint">let go to send</span>
         </div>
+      ) : voice.thinking ? (
+        <div className="mochiListen thinking" role="status" aria-live="polite">
+          <span className="mochiListenDot" aria-hidden="true" />
+          <span>Thinking…</span>
+        </div>
+      ) : (
+        bubble && (
+          <div className="mochiBubble" role="status">
+            {bubble}
+          </div>
+        )
       )}
       <button
         className={`mochi ${pokes > 0 ? "poked" : ""}`}
@@ -525,13 +616,16 @@ export default function Mochi() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        aria-label={`Mochi the strawberry, ${moodLabel}, ${happiness} percent happy. Tap and she'll talk to you, or drag her anywhere.`}
-        title="Drag me anywhere · tap me and I'll say something"
+        onPointerCancel={onPointerCancel}
+        onContextMenu={(event) => event.preventDefault()}
+        aria-label={`Mochi the strawberry, ${moodLabel}, ${happiness} percent happy. Tap to say hi, hold to talk, or drag her anywhere.`}
+        title="Tap: say hi · Hold: talk to me · Drag: move me"
         data-mood={mood}
         data-calm={calm}
         data-dancing={playing && !calm}
         data-talking={talking ? "true" : undefined}
+        data-listening={voice.listening ? "true" : undefined}
+        data-thinking={voice.thinking ? "true" : undefined}
         data-react={reaction ?? undefined}
         data-idle={idle ?? undefined}
         data-annoyed={annoyed ? "true" : undefined}
@@ -567,7 +661,6 @@ export default function Mochi() {
           <span className="mochiShine" />
         </span>
       </button>
-      <MochiMic onReply={onVoiceReply} onStatus={onVoiceStatus} />
       {hearts.map((h) => (
         <span
           key={h.id}

@@ -1,36 +1,36 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { Icon } from "./icons";
+import { useEffect, useRef, useState } from "react";
 import {
   canRecord,
   MAX_RECORD_MS,
   MIN_RECORD_MS,
   startRecording,
   type VoiceRecording,
-} from "../lib/voice";
+} from "./voice";
 
-type Phase = "idle" | "listening" | "thinking";
+export type VoicePhase = "idle" | "listening" | "thinking";
 
-type Props = {
+type Options = {
   onReply: (text: string) => void;
   onStatus: (text: string) => void;
 };
 
 /**
- * Hold-to-talk button that lives next to Mochi.
+ * Hold-to-talk logic for Mochi's voice chat, without owning a button.
  *
- * Hold, speak, let go. The note goes to /api/mochi as 16 kHz WAV and the reply
- * comes back as text for Mochi's bubble (and her voice).
+ * Mochi herself is the button now: she starts recording, stops on release,
+ * uploads the WAV to /api/mochi and hands the reply back through `onReply`.
  */
-export default function MochiMic({ onReply, onStatus }: Props) {
+export function useMochiVoice({ onReply, onStatus }: Options) {
   const [supported, setSupported] = useState(false);
-  const [phase, setPhase] = useState<Phase>("idle");
+  const [phase, setPhase] = useState<VoicePhase>("idle");
 
-  const phaseRef = useRef<Phase>("idle");
+  const phaseRef = useRef<VoicePhase>("idle");
   const sessionRef = useRef<VoiceRecording | null>(null);
   const holdingRef = useRef(false);
   const attemptRef = useRef(0);
+  const finishingRef = useRef(false);
   const autoStopRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const finishRef = useRef<() => void>(() => undefined);
@@ -39,7 +39,7 @@ export default function MochiMic({ onReply, onStatus }: Props) {
   onReplyRef.current = onReply;
   onStatusRef.current = onStatus;
 
-  const go = (next: Phase) => {
+  const go = (next: VoicePhase) => {
     phaseRef.current = next;
     if (mountedRef.current) setPhase(next);
   };
@@ -53,15 +53,18 @@ export default function MochiMic({ onReply, onStatus }: Props) {
 
   // Stop listening and, if we have audio, send it to Mochi.
   const finish = async () => {
+    // Two releases can race (the pet's own handler plus the window fallback).
+    if (finishingRef.current) return;
     clearAutoStop();
     holdingRef.current = false;
 
     const session = sessionRef.current;
     if (!session) {
-      // Still waiting on the mic permission prompt — begin() will cancel it.
+      // Still waiting on the mic permission prompt — start() will cancel it.
       go("idle");
       return;
     }
+    finishingRef.current = true;
     sessionRef.current = null;
     go("thinking");
 
@@ -74,7 +77,7 @@ export default function MochiMic({ onReply, onStatus }: Props) {
         return;
       }
       if (result.durationMs < MIN_RECORD_MS) {
-        onStatusRef.current("Hold the mic a little longer, then let go.");
+        onStatusRef.current("Hold me a little longer, then let go.");
         go("idle");
         return;
       }
@@ -107,6 +110,7 @@ export default function MochiMic({ onReply, onStatus }: Props) {
         onStatusRef.current("Mochi couldn't hear that one. Try again in a bit.");
       }
     } finally {
+      finishingRef.current = false;
       if (mountedRef.current) go("idle");
     }
   };
@@ -116,7 +120,7 @@ export default function MochiMic({ onReply, onStatus }: Props) {
   };
 
   // Throw the current take away without uploading it.
-  const abort = () => {
+  const cancel = () => {
     clearAutoStop();
     holdingRef.current = false;
     attemptRef.current += 1;
@@ -126,7 +130,7 @@ export default function MochiMic({ onReply, onStatus }: Props) {
     go("idle");
   };
 
-  const begin = () => {
+  const start = () => {
     if (phaseRef.current !== "idle" || holdingRef.current) return;
     if (!canRecord()) return;
 
@@ -165,16 +169,8 @@ export default function MochiMic({ onReply, onStatus }: Props) {
     mountedRef.current = true;
     setSupported(canRecord());
 
-    const release = () => {
-      if (holdingRef.current) void finishRef.current();
-    };
-    window.addEventListener("pointerup", release);
-    window.addEventListener("pointercancel", release);
-
     return () => {
       mountedRef.current = false;
-      window.removeEventListener("pointerup", release);
-      window.removeEventListener("pointercancel", release);
       clearAutoStop();
       holdingRef.current = false;
       attemptRef.current += 1;
@@ -182,43 +178,16 @@ export default function MochiMic({ onReply, onStatus }: Props) {
       sessionRef.current = null;
       session?.cancel();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!supported) return null;
-
-  const label =
-    phase === "listening"
-      ? "Mochi is listening. Let go to send."
-      : phase === "thinking"
-        ? "Mochi is thinking."
-        : "Hold to talk to Mochi.";
-
-  return (
-    <button
-      type="button"
-      className="mochiMic"
-      data-phase={phase}
-      disabled={phase === "thinking"}
-      onPointerDown={(event) => {
-        if (event.pointerType === "mouse" && event.button !== 0) return;
-        event.preventDefault();
-        begin();
-      }}
-      onPointerUp={() => {
-        if (holdingRef.current) void finishRef.current();
-      }}
-      onPointerLeave={() => {
-        if (holdingRef.current) void finishRef.current();
-      }}
-      onPointerCancel={abort}
-      onContextMenu={(event) => event.preventDefault()}
-      aria-label={label}
-      title="Hold to talk to Mochi"
-      draggable={false}
-    >
-      <span className="mochiMicRing" aria-hidden="true" />
-      <Icon name={phase === "thinking" ? "sparkle" : "mic"} size={17} />
-    </button>
-  );
+  return {
+    supported,
+    phase,
+    listening: phase === "listening",
+    thinking: phase === "thinking",
+    busy: phase !== "idle",
+    start,
+    finish: () => void finishRef.current(),
+    cancel,
+  };
 }

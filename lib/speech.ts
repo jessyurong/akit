@@ -12,16 +12,25 @@ type SpeakOptions = {
   rate?: number;
 };
 
+// Mochi's voice: small and bright, but slowed down a touch so every word lands.
+const MOCHI_VOICE = { pitch: 1.5, rate: 0.97, volume: 0.92 };
+
 // Nicer-sounding English voices, in order of preference per platform.
 const CUTE_VOICES = [
   "samantha",
   "google us english",
   "microsoft aria",
   "microsoft jenny",
+  "microsoft michelle",
+  "microsoft ana",
+  "google uk english female",
   "karen",
   "moira",
   "tessa",
   "victoria",
+  "ava",
+  "allison",
+  "susan",
   "zira",
 ];
 
@@ -83,9 +92,9 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
   if (!voice) warmUpVoices();
   if (voice) u.voice = voice;
   u.lang = voice?.lang ?? "en-US";
-  u.pitch = opts.pitch ?? 1.35; // a little high = cute, not robotic
-  u.rate = opts.rate ?? 1.02;
-  u.volume = opts.volume ?? 0.95;
+  u.pitch = opts.pitch ?? MOCHI_VOICE.pitch; // a little high = cute, not robotic
+  u.rate = opts.rate ?? MOCHI_VOICE.rate; // slightly slower = clearer
+  u.volume = opts.volume ?? MOCHI_VOICE.volume;
 
   u.onstart = () => opts.onStart?.();
   u.onend = () => opts.onEnd?.();
