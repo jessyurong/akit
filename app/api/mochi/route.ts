@@ -46,18 +46,27 @@ function rateLimited(ip: string): boolean {
   return false;
 }
 
-function overLimit(ip: string): boolean {
-  const now = Date.now();
-  return (HITS.get(ip) ?? []).filter((t) => now - t < WINDOW_MS).length >= MAX_REQUESTS;
-}
-
 type GeminiPayload = {
-  candidates?: { content?: { parts?: { text?: string }[] } }[];
+  candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
 };
+
+const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+/** One generateContent call with its own timeout. */
+function genOnce(key: string, model: string, body: unknown, timeoutMs: number) {
+  return fetch(`${API_BASE}/models/${encodeURIComponent(model)}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
+    cache: "no-store",
+  });
+}
 
 function extractReply(payload: GeminiPayload): { reply: string; heard: string | null } | null {
   const parts = payload.candidates?.[0]?.content?.parts;
   const raw = (parts ?? [])
+    .filter((part) => !part?.thought)
     .map((part) => (typeof part?.text === "string" ? part.text : ""))
     .join("")
     .trim();
@@ -78,18 +87,69 @@ function extractReply(payload: GeminiPayload): { reply: string; heard: string | 
   return { reply: cleaned, heard: null };
 }
 
-type Probe = {
-  model: string;
-  modelStatus: number | string;
-  modelError?: string;
-  generateStatus: number | string;
-  generateError?: string;
+type Trial = {
+  label: string;
+  status: number | string;
+  ms: number;
   reply?: string;
+  error?: string;
 };
 
+/** Probe limiter — each call fires a few tiny Gemini requests. */
+const PROBE_HITS = new Map<string, number[]>();
+function probeLimited(ip: string): boolean {
+  const now = Date.now();
+  const recent = (PROBE_HITS.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  if (recent.length >= 6) {
+    PROBE_HITS.set(ip, recent);
+    return true;
+  }
+  recent.push(now);
+  PROBE_HITS.set(ip, recent);
+  return false;
+}
+
+async function trial(
+  label: string,
+  key: string,
+  model: string,
+  genConfig: Record<string, unknown>,
+): Promise<Trial> {
+  const started = Date.now();
+  try {
+    const res = await genOnce(
+      key,
+      model,
+      {
+        contents: [{ role: "user", parts: [{ text: "Reply with the single word: ok" }] }],
+        generationConfig: { maxOutputTokens: 24, temperature: 0, ...genConfig },
+      },
+      12_000,
+    );
+    const ms = Date.now() - started;
+    const raw = await res.text();
+    if (!res.ok) return { label, status: res.status, ms, error: raw.slice(0, 240) };
+    let reply = "(empty)";
+    try {
+      reply = extractReply(JSON.parse(raw) as GeminiPayload)?.reply ?? "(empty)";
+    } catch {
+      reply = raw.slice(0, 80);
+    }
+    return { label, status: res.status, ms, reply };
+  } catch (error) {
+    return {
+      label,
+      status: "network-error",
+      ms: Date.now() - started,
+      error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    };
+  }
+}
+
 /**
- * GET /api/mochi — tiny setup check. Open it in the browser to see whether the
- * key is visible to the deployment and whether Gemini accepts it.
+ * GET /api/mochi — setup check. Open it in the browser to see whether the key
+ * is visible to the deployment, whether Gemini accepts it, and how fast each
+ * model variant answers.
  */
 export async function GET(request: Request) {
   const ip =
@@ -100,54 +160,46 @@ export async function GET(request: Request) {
   const key = process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
   if (!key) return NextResponse.json({ configured: false, model });
-  if (overLimit(ip)) {
-    return NextResponse.json({ configured: true, error: "Too many requests. Wait a minute." }, { status: 429 });
+  if (probeLimited(ip)) {
+    return NextResponse.json({ configured: true, error: "Probe limit reached. Wait a minute." }, { status: 429 });
   }
 
-  const base = "https://generativelanguage.googleapis.com/v1beta";
-  const probe: Probe = { model, modelStatus: 0, generateStatus: 0 };
-
+  let modelStatus: number | string = 0;
+  let modelError: string | undefined;
   try {
-    const meta = await fetch(`${base}/models/${encodeURIComponent(model)}`, {
+    const meta = await fetch(`${API_BASE}/models/${encodeURIComponent(model)}`, {
       headers: { "x-goog-api-key": key },
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(10_000),
       cache: "no-store",
     });
-    probe.modelStatus = meta.status;
-    if (!meta.ok) probe.modelError = (await meta.text()).slice(0, 300);
+    modelStatus = meta.status;
+    if (!meta.ok) modelError = (await meta.text()).slice(0, 240);
   } catch {
-    probe.modelStatus = "network-error";
+    modelStatus = "network-error";
   }
 
-  try {
-    const gen = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: "Reply with the single word: ok" }] }],
-        generationConfig: { maxOutputTokens: 12, temperature: 0 },
-      }),
-      signal: AbortSignal.timeout(20_000),
-      cache: "no-store",
-    });
-    probe.generateStatus = gen.status;
-    const payload = (await gen.json().catch(() => null)) as GeminiPayload | null;
-    if (!gen.ok) {
-      probe.generateError = JSON.stringify(payload).slice(0, 300);
-    } else {
-      probe.reply = extractReply(payload ?? {})?.reply ?? "(empty)";
-    }
-  } catch {
-    probe.generateStatus = "network-error";
-  }
+  const noThink = { thinkingConfig: { thinkingBudget: 0 } };
+  const tests = await Promise.all([
+    trial(`${model} + no-think`, key, model, noThink),
+    trial(`${model} + default thinking`, key, model, {}),
+    trial("gemini-2.5-flash + no-think", key, "gemini-2.5-flash", noThink),
+    trial("gemini-flash-lite-latest + no-think", key, "gemini-flash-lite-latest", noThink),
+  ]);
 
   return NextResponse.json(
     {
       configured: true,
-      keyLength: key.length,
-      keyLooksValid: /^AIza[0-9A-Za-z_-]{20,}$/.test(key.trim()),
-      keyHasWhitespace: key !== key.trim(),
-      ...probe,
+      key: {
+        length: key.length,
+        prefix: key.slice(0, 3),
+        hasWhitespace: key !== key.trim(),
+        looksLikeAIza: /^AIza[0-9A-Za-z_-]{20,}$/.test(key.trim()),
+        looksLikeAQ: /^AQ\.[0-9A-Za-z._-]{10,}$/.test(key.trim()),
+      },
+      model,
+      modelStatus,
+      modelError,
+      tests,
     },
     { headers: { "Cache-Control": "no-store" } },
   );
@@ -185,44 +237,44 @@ export async function POST(request: Request) {
 
   const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
 
-  try {
-    const upstream = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+  const makeBody = (noThink: boolean) => ({
+    systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+    contents: [
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": key,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { inlineData: { mimeType: "audio/wav", data: audio } },
-                { text: "Voice message from the user. Reply as Mochi." },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.9,
-            maxOutputTokens: 800,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                heard: { type: "STRING" },
-                reply: { type: "STRING" },
-              },
-              required: ["reply"],
-            },
-          },
-        }),
-        signal: AbortSignal.timeout(45_000),
-        cache: "no-store",
+        role: "user",
+        parts: [
+          { inlineData: { mimeType: "audio/wav", data: audio } },
+          { text: "Voice message from the user. Reply as Mochi." },
+        ],
       },
-    );
+    ],
+    generationConfig: {
+      temperature: 0.9,
+      maxOutputTokens: 320,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          heard: { type: "STRING" },
+          reply: { type: "STRING" },
+        },
+        required: ["reply"],
+      },
+      // Mochi answers in 1-3 sentences; deep thinking just adds latency.
+      ...(noThink ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+    },
+  });
+
+  try {
+    let upstream = await genOnce(key, model, makeBody(true), 30_000);
+
+    // Some models reject thinkingBudget — retry plainly if that was the complaint.
+    if (upstream.status === 400) {
+      const detail = await upstream.clone().text().catch(() => "");
+      if (/thinking/i.test(detail)) {
+        upstream = await genOnce(key, model, makeBody(false), 30_000);
+      }
+    }
 
     if (!upstream.ok) {
       const detail = await upstream.text().catch(() => "");
