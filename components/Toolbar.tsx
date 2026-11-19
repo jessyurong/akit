@@ -6,6 +6,7 @@ import { sfx, haptics } from "../lib/audio/sfx";
 import { THEME_ICON, THEME_LABELS, THEME_ORDER, type ThemeName } from "../lib/theme";
 import { Icon } from "./icons";
 import { Modal } from "./ui";
+import { clearHistory } from "../lib/mochi-history";
 import {
   installChangeEvent,
   isInstallable,
@@ -92,6 +93,7 @@ function InstallButton() {
 export default function Toolbar() {
   const { settings, updateSettings, setShareOpen, pushToast } = useGame();
   const [themeOpen, setThemeOpen] = useState(false);
+  const [forgetOpen, setForgetOpen] = useState(false);
 
   return (
     <div className="toolbar">
@@ -163,11 +165,39 @@ export default function Toolbar() {
         )}
       </div>
 
+      <button
+        className="iconBtn"
+        onClick={() => setForgetOpen(true)}
+        aria-label="Forget our conversation"
+        title="Forget our conversation"
+      >
+        <Icon name="eraser" size={18} />
+      </button>
+
       <button className="iconBtn" onClick={() => setShareOpen(true)} aria-label="Share my calm card" title="Share card">
         <Icon name="camera" size={18} />
       </button>
 
       <InstallButton />
+
+      <Modal open={forgetOpen} onClose={() => setForgetOpen(false)} title="Forget our chat?">
+        <p>Mochi will forget the last few messages on this device. Your settings and music stay the same.</p>
+        <div className="shareActions">
+          <button
+            className="primaryBtn"
+            onClick={() => {
+              clearHistory();
+              setForgetOpen(false);
+              pushToast("Mochi forgot our chat", "eraser");
+            }}
+          >
+            Forget
+          </button>
+          <button className="smallBtn" onClick={() => setForgetOpen(false)}>
+            Keep it
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

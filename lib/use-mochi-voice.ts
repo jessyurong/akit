@@ -8,6 +8,7 @@ import {
   startRecording,
   type VoiceRecording,
 } from "./voice";
+import { appendExchange, loadHistory } from "./mochi-history";
 
 export type VoicePhase = "idle" | "listening" | "thinking";
 
@@ -85,7 +86,7 @@ export function useMochiVoice({ onReply, onStatus }: Options) {
       const response = await fetch("/api/mochi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ audio: result.base64 }),
+        body: JSON.stringify({ audio: result.base64, history: loadHistory() }),
       });
 
       if (!mountedRef.current) return;
@@ -99,9 +100,13 @@ export function useMochiVoice({ onReply, onStatus }: Options) {
         return;
       }
 
-      const data = (await response.json()) as { reply?: unknown };
+      const data = (await response.json()) as { reply?: unknown; heard?: unknown };
       if (typeof data.reply === "string" && data.reply.trim()) {
-        onReplyRef.current(data.reply.trim());
+        const reply = data.reply.trim();
+        // Remember it before speaking — even if the device blocks audio, the
+        // exchange still counts as part of the conversation.
+        appendExchange(typeof data.heard === "string" ? data.heard : "", reply);
+        onReplyRef.current(reply);
       } else {
         onStatusRef.current("Mochi didn't catch that. Try again?");
       }
