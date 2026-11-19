@@ -46,6 +46,11 @@ function rateLimited(ip: string): boolean {
   return false;
 }
 
+function overLimit(ip: string): boolean {
+  const now = Date.now();
+  return (HITS.get(ip) ?? []).filter((t) => now - t < WINDOW_MS).length >= MAX_REQUESTS;
+}
+
 type GeminiPayload = {
   candidates?: { content?: { parts?: { text?: string }[] } }[];
 };
@@ -71,6 +76,81 @@ function extractReply(payload: GeminiPayload): { reply: string; heard: string | 
     /* model ignored the schema — fall back to the raw text */
   }
   return { reply: cleaned, heard: null };
+}
+
+type Probe = {
+  model: string;
+  modelStatus: number | string;
+  modelError?: string;
+  generateStatus: number | string;
+  generateError?: string;
+  reply?: string;
+};
+
+/**
+ * GET /api/mochi — tiny setup check. Open it in the browser to see whether the
+ * key is visible to the deployment and whether Gemini accepts it.
+ */
+export async function GET(request: Request) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "local";
+
+  const key = process.env.GEMINI_API_KEY;
+  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  if (!key) return NextResponse.json({ configured: false, model });
+  if (overLimit(ip)) {
+    return NextResponse.json({ configured: true, error: "Too many requests. Wait a minute." }, { status: 429 });
+  }
+
+  const base = "https://generativelanguage.googleapis.com/v1beta";
+  const probe: Probe = { model, modelStatus: 0, generateStatus: 0 };
+
+  try {
+    const meta = await fetch(`${base}/models/${encodeURIComponent(model)}`, {
+      headers: { "x-goog-api-key": key },
+      signal: AbortSignal.timeout(15_000),
+      cache: "no-store",
+    });
+    probe.modelStatus = meta.status;
+    if (!meta.ok) probe.modelError = (await meta.text()).slice(0, 300);
+  } catch {
+    probe.modelStatus = "network-error";
+  }
+
+  try {
+    const gen = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: "Reply with the single word: ok" }] }],
+        generationConfig: { maxOutputTokens: 12, temperature: 0 },
+      }),
+      signal: AbortSignal.timeout(20_000),
+      cache: "no-store",
+    });
+    probe.generateStatus = gen.status;
+    const payload = (await gen.json().catch(() => null)) as GeminiPayload | null;
+    if (!gen.ok) {
+      probe.generateError = JSON.stringify(payload).slice(0, 300);
+    } else {
+      probe.reply = extractReply(payload ?? {})?.reply ?? "(empty)";
+    }
+  } catch {
+    probe.generateStatus = "network-error";
+  }
+
+  return NextResponse.json(
+    {
+      configured: true,
+      keyLength: key.length,
+      keyLooksValid: /^AIza[0-9A-Za-z_-]{20,}$/.test(key.trim()),
+      keyHasWhitespace: key !== key.trim(),
+      ...probe,
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(request: Request) {
