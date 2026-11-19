@@ -5,7 +5,7 @@ import { useGame } from "../lib/game";
 import { useMusic } from "../lib/music/player";
 import { sfx, haptics } from "../lib/audio/sfx";
 import { Icon } from "./icons";
-import { speak, stopSpeaking, warmUpVoices } from "../lib/speech";
+import { primeSpeech, speak, stopSpeaking, warmUpVoices } from "../lib/speech";
 import { useMochiVoice } from "../lib/use-mochi-voice";
 
 // Always the first thing Mochi says on a fresh visit.
@@ -309,6 +309,8 @@ export default function Mochi() {
 
   const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Guarantee a gesture-linked first utterance before any async reply speaks.
+    primeSpeech();
     const el = wrapRef.current;
     if (!el) return;
     suppressClick.current = false;

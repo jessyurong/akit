@@ -36,6 +36,9 @@ const CUTE_VOICES = [
 
 let voice: SpeechSynthesisVoice | null = null;
 let voiceReady = false;
+let primed = false;
+let priming = false;
+let armed = false;
 
 function synth(): SpeechSynthesis | null {
   if (typeof window === "undefined") return null;
@@ -66,6 +69,57 @@ export function warmUpVoices() {
   if (!voiceReady) s.addEventListener("voiceschanged", pick, { once: true });
 }
 
+/**
+ * iOS/WebKit (and Chrome) refuse to start speech unless the first utterance is
+ * created inside a real user gesture. Voice-chat replies arrive after an async
+ * fetch, so by the time we speak there is no gesture left on the stack — the
+ * browser drops it silently (no error, no onstart/onend, no sound). Whispering
+ * one muted, empty utterance during the first tap lifts that restriction for
+ * the rest of the session.
+ */
+export function primeSpeech() {
+  if (primed || priming || typeof window === "undefined") return;
+  const s = synth();
+  if (!s || !("SpeechSynthesisUtterance" in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    u.rate = 10;
+    priming = true;
+    // Suppressed utterances fire no events at all, so only trust onstart as
+    // proof the engine was really unlocked. Otherwise a later tap retries.
+    u.onstart = () => {
+      primed = true;
+      priming = false;
+    };
+    window.setTimeout(() => {
+      priming = false;
+    }, 500);
+    s.speak(u);
+  } catch {
+    priming = false;
+  }
+}
+
+/** Fire once on the first gesture of the session, whatever the user touches. */
+export function armSpeech() {
+  if (armed || typeof window === "undefined") return;
+  armed = true;
+  const unlock = () => {
+    primeSpeech();
+    if (!primed) return; // let a later gesture retry if this one was ignored
+    window.removeEventListener("pointerdown", unlock, true);
+    window.removeEventListener("keydown", unlock, true);
+    window.removeEventListener("touchend", unlock, true);
+    window.removeEventListener("click", unlock, true);
+  };
+  // Capture phase so this runs before React's own handlers.
+  window.addEventListener("pointerdown", unlock, true);
+  window.addEventListener("keydown", unlock, true);
+  window.addEventListener("touchend", unlock, true);
+  window.addEventListener("click", unlock, true);
+}
+
 export function canSpeak(): boolean {
   if (typeof window === "undefined") return false;
   return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
@@ -85,8 +139,9 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
     return false;
   }
 
-  // Cut the previous line so fast taps don't stack up in a queue.
-  s.cancel();
+  // Cut the previous line so fast taps don't stack up in a queue. Don't call
+  // cancel() while idle — on iOS that can swallow the next utterance, too.
+  if (s.speaking || s.pending) s.cancel();
 
   const u = new SpeechSynthesisUtterance(text);
   if (!voice) warmUpVoices();

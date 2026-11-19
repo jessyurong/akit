@@ -13,6 +13,7 @@ import { audio } from "./audio/engine";
 import { haptics } from "./audio/sfx";
 import { ambient } from "./audio/ambient";
 import { loadState, saveState, clamp } from "./storage";
+import { armSpeech } from "./speech";
 import { DEFAULT_TRACK_ID } from "./music/tracks";
 import type { IconName } from "../components/icons";
 import {
@@ -154,6 +155,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
     setHydrated(true);
     audio.arm();
+    armSpeech();
   }, []);
 
   /* --- persist --- */
