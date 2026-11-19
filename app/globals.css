@@ -3932,4 +3932,47 @@ svg.icon {
   }
 }
 
+/* Escalation — she warned you twice already and you kept going. */
+.mochi[data-offense="warn"] .mochiBrow { height: 4px; }
+
+.mochi[data-offense="warn"] .mochiSteam::before,
+.mochi[data-offense="warn"] .mochiSteam::after {
+  animation-duration: 0.75s;
+}
+
+.mochi[data-offense="high"] .mochiSteam {
+  top: -21px;
+  width: 46px;
+  height: 18px;
+}
+
+.mochi[data-offense="high"] .mochiSteam::before,
+.mochi[data-offense="high"] .mochiSteam::after {
+  width: 12px;
+  height: 12px;
+  animation-duration: 0.6s;
+}
+
+.mochi[data-offense="high"] .mochiBrow { height: 5px; }
+
+.mochi[data-offense="high"] .mochiMouth {
+  width: 17px;
+  border-top-width: 3px;
+}
+
+.mochi[data-offense="high"] .mochiBody {
+  animation-duration: 0.16s;
+}
+
+.mochi[data-offense="high"] .mochiCrown {
+  animation-duration: 0.16s;
+}
+
+/* Jessie-level bubble: the calm card stops looking calm. */
+.mochiWrap:has(.mochi[data-offense="high"]) .mochiBubble {
+  border-color: rgba(244, 63, 94, 0.85);
+  box-shadow: var(--shadow), 0 0 0 3px rgba(244, 63, 94, 0.26);
+  font-weight: 600;
+}
+
 

@@ -68,6 +68,29 @@ const ANGRY_LINES = [
   "Hmph. Poke me again and see what happens.",
 ];
 
+// Second offense — still a warning, but she is no longer being polite about it.
+const WARN_LINES = [
+  "Excuse me? That was your second warning.",
+  "I'm not playing around. Stop poking me.",
+  "Okay, now I'm actually annoyed.",
+  "Hands. Off. The strawberry.",
+  "You're testing my patience, and I'm a very patient fruit.",
+];
+
+// Third offense and beyond — the warnings failed, so Jessie gets involved.
+const JESSIE_LINES = [
+  "Stop it. Or I'm telling Jessie.",
+  "That's it — I'm telling Jessie.",
+  "One more poke and Jessie hears about this.",
+  "Careful. I have Jessie on speed dial.",
+  "Do you want me to tell Jessie? Because I will.",
+  "I'm serious. Jessie made me, and Jessie will hear about you.",
+];
+
+const OFFENSE_KEY = "sr:mochi-offense";
+// She forgives after this long without any more spam.
+const FORGIVE_MS = 120_000;
+
 const TIPS = [
   "Try the 4-4-4 breathing card when your chest feels tight.",
   "Stack rain + fireplace in the ambient mixer. Trust.",
@@ -120,6 +143,9 @@ export default function Mochi() {
   const annoyedRef = useRef(false);
   const annoyedTimer = useRef<number | null>(null);
   const tapTimes = useRef<number[]>([]);
+  const [offense, setOffense] = useState(0);
+  const offenseRef = useRef(0);
+  const lastOffenseAt = useRef(0);
 
   const showBubble = (text: string, ms = 5200) => {
     setBubble(text);
@@ -143,6 +169,23 @@ export default function Mochi() {
 
   useEffect(() => {
     warmUpVoices();
+    // Remember how many warnings were already ignored during this browsing session.
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(OFFENSE_KEY) ?? "null") as
+        | { level?: number; at?: number }
+        | null;
+      if (saved && typeof saved.level === "number" && typeof saved.at === "number") {
+        if (Date.now() - saved.at < FORGIVE_MS) {
+          offenseRef.current = saved.level;
+          lastOffenseAt.current = saved.at;
+          setOffense(saved.level);
+        } else {
+          window.sessionStorage.removeItem(OFFENSE_KEY);
+        }
+      }
+    } catch {
+      /* storage blocked — escalation just starts fresh */
+    }
     return () => {
       if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
       if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
@@ -346,28 +389,49 @@ export default function Mochi() {
     tapTimes.current.push(now);
     if (tapTimes.current.length >= 4 && next > 1) {
       tapTimes.current = [];
+
+      // Escalation: first time is a warning, second is a sterner one, and after
+      // that she stops asking nicely and threatens to tell Jessie.
+      if (now - lastOffenseAt.current > FORGIVE_MS) offenseRef.current = 0;
+      const level = (offenseRef.current += 1);
+      lastOffenseAt.current = now;
+      setOffense(level);
+      try {
+        window.sessionStorage.setItem(OFFENSE_KEY, JSON.stringify({ level, at: now }));
+      } catch {
+        /* storage blocked — escalation still works for this visit */
+      }
+
+      const pool = level >= 3 ? JESSIE_LINES : level === 2 ? WARN_LINES : ANGRY_LINES;
+      const grumpyMs = level >= 3 ? 2800 : level === 2 ? 2300 : 1900;
+
       if (annoyedTimer.current) window.clearTimeout(annoyedTimer.current);
       annoyedRef.current = true;
       setAnnoyed(true);
       annoyedTimer.current = window.setTimeout(() => {
         annoyedRef.current = false;
         setAnnoyed(false);
-      }, 1900);
+        // Drop back to a normal mood once she has cooled off for good.
+        if (Date.now() - lastOffenseAt.current > FORGIVE_MS) {
+          offenseRef.current = 0;
+          setOffense(0);
+        }
+      }, grumpyMs);
       setIdle(null);
       if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
       setReaction(null);
       sfx.huff();
 
-      const grumpy = ANGRY_LINES[Math.floor(Math.random() * ANGRY_LINES.length)];
-      showBubble(grumpy, 3800);
+      const grumpy = pool[Math.floor(Math.random() * pool.length)];
+      showBubble(grumpy, level >= 3 ? 4800 : 3800);
       if (settings.soundOn) {
         const started = speak(grumpy, {
-          pitch: 0.92,
-          rate: 1.06,
+          pitch: level >= 3 ? 0.86 : 0.92,
+          rate: level >= 3 ? 1 : 1.06,
           onStart: () => {
             setTalking(true);
             if (talkTimer.current) window.clearTimeout(talkTimer.current);
-            talkTimer.current = window.setTimeout(stopTalking, 3400);
+            talkTimer.current = window.setTimeout(stopTalking, Math.max(3400, grumpyMs));
           },
           onEnd: stopTalking,
         });
@@ -445,6 +509,7 @@ export default function Mochi() {
         data-react={reaction ?? undefined}
         data-idle={idle ?? undefined}
         data-annoyed={annoyed ? "true" : undefined}
+        data-offense={offense >= 3 ? "high" : offense === 2 ? "warn" : undefined}
         data-dragging={dragging ? "true" : undefined}
         style={{ ["--beat" as string]: beat } as React.CSSProperties}
       >
