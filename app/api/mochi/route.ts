@@ -304,8 +304,10 @@ export async function POST(request: Request) {
 
   try {
     let upstream: Response | null = null;
+    const chainStarted = Date.now();
 
     for (const step of chain) {
+      const stepStarted = Date.now();
       try {
         let res = await genOnce(key, step.model, makeBody(step.thinking, history), 12_000);
 
@@ -318,16 +320,20 @@ export async function POST(request: Request) {
         }
 
         if (res.ok) {
+          console.info(`Mochi voice: ${step.model} replied 200 in ${Date.now() - stepStarted}ms`);
           upstream = res;
           break;
         }
 
         const detail = await res.text().catch(() => "");
-        console.error(`Mochi voice: ${step.model} replied ${res.status}: ${detail.slice(0, 300)}`);
+        console.error(
+          `Mochi voice: ${step.model} replied ${res.status} in ${Date.now() - stepStarted}ms: ${detail.slice(0, 300)}`,
+        );
       } catch (error) {
-        console.error(`Mochi voice: ${step.model} failed`, error);
+        console.error(`Mochi voice: ${step.model} failed after ${Date.now() - stepStarted}ms`, error);
       }
     }
+    console.info(`Mochi voice: model chain finished in ${Date.now() - chainStarted}ms`);
 
     if (!upstream) {
       return NextResponse.json({ error: "Mochi couldn't think of a reply." }, { status: 502 });

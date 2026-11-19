@@ -70,7 +70,12 @@ export function useMochiVoice({ onReply, onStatus }: Options) {
     go("thinking");
 
     try {
+      const audioStarted = performance.now();
       const result = await session.stop();
+      const audioMs = Math.round(performance.now() - audioStarted);
+      if (process.env.NODE_ENV !== "production") {
+        console.info(`[mochi-voice] audioStopMs=${audioMs}`);
+      }
       if (!mountedRef.current) return;
 
       if (!result) {
@@ -83,11 +88,16 @@ export function useMochiVoice({ onReply, onStatus }: Options) {
         return;
       }
 
+      const fetchStarted = performance.now();
       const response = await fetch("/api/mochi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ audio: result.base64, history: loadHistory() }),
       });
+      const fetchMs = Math.round(performance.now() - fetchStarted);
+      if (process.env.NODE_ENV !== "production") {
+        console.info(`[mochi-voice] fetchMs=${fetchMs} status=${response.status}`);
+      }
 
       if (!mountedRef.current) return;
 
@@ -96,7 +106,15 @@ export function useMochiVoice({ onReply, onStatus }: Options) {
         return;
       }
       if (!response.ok) {
-        onStatusRef.current("Mochi couldn't hear that one. Try again in a bit.");
+        // Show the server's real reason (e.g. missing key) instead of blaming
+        // the user's microphone for every failure.
+        const detail = await response
+          .json()
+          .then((body: { error?: unknown }) =>
+            typeof body?.error === "string" ? body.error : "",
+          )
+          .catch(() => "");
+        onStatusRef.current(detail || "Mochi couldn't answer that one. Try again in a bit.");
         return;
       }
 
@@ -110,9 +128,12 @@ export function useMochiVoice({ onReply, onStatus }: Options) {
       } else {
         onStatusRef.current("Mochi didn't catch that. Try again?");
       }
-    } catch {
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[mochi-voice] request failed", error);
+      }
       if (mountedRef.current) {
-        onStatusRef.current("Mochi couldn't hear that one. Try again in a bit.");
+        onStatusRef.current("I lost the connection to Mochi. Try again?");
       }
     } finally {
       finishingRef.current = false;
