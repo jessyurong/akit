@@ -158,7 +158,7 @@ export async function GET(request: Request) {
     "local";
 
   const key = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
   if (!key) return NextResponse.json({ configured: false, model });
   if (probeLimited(ip)) {
     return NextResponse.json({ configured: true, error: "Probe limit reached. Wait a minute." }, { status: 429 });
@@ -234,11 +234,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Mochi's voice isn't configured yet." }, { status: 500 });
   }
 
-  // Fast first, then cheaper fallbacks if the model is busy or retired.
+  // Fast first, then heavier fallbacks if the model is busy.
   const chain: { model: string; thinking: string | null }[] = [
-    { model: process.env.GEMINI_MODEL || "gemini-3.8-flash", thinking: "LOW" },
+    { model: process.env.GEMINI_MODEL || "gemini-flash-lite-latest", thinking: null },
     { model: "gemini-3.6-flash", thinking: "MINIMAL" },
-    { model: "gemini-flash-lite-latest", thinking: null },
+    { model: "gemini-3.8-flash", thinking: "LOW" },
   ];
 
   const makeBody = (thinking: string | null) => ({
